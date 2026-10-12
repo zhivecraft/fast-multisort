@@ -582,6 +582,8 @@ Every competitor is run with its own multi-key API where it has one and checked 
 
 Run `pnpm bench` (or `pnpm bench --quick` for 10k rows only) to reproduce.
 
+The honest footnote: at a hundred rows a sort takes a few microseconds and a plain comparator is hard to beat; remeda wins the ten-distinct-strings case by about 20%. From a thousand rows up, nothing in this table comes within 2× on any case.
+
 ## How
 
 Numbers go through a stable radix sort on their float64 bits, strings through buckets and a radix sort over the characters that actually differ, ties recurse into the next rule, and anything exotic falls back to the lodash comparator so the order stays identical to lodash. Inputs that are already in order are passed through. The rest is bookkeeping.
