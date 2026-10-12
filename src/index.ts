@@ -177,6 +177,137 @@ const radixOrder = (pool: Pool, n: number): Uint32Array => {
 
 const compareClasses = (a: number, b: number) => (a === 0 ? -1 : b === 0 ? 1 : a - b);
 
+const WINDOW_MIN = 256;
+const WINDOW = 8;
+const WINDOW_SMALL = 64;
+
+type StringPool = {hi: Uint32Array; lo: Uint32Array; order: Uint32Array; tmp: Uint32Array};
+
+const stringPools: StringPool[] = [];
+
+const stringPoolAt = (depth: number, n: number): StringPool => {
+  let pool = stringPools[depth];
+  if (pool === undefined || pool.hi.length < n) {
+    const size = Math.max(n, 1024, pool === undefined ? 0 : pool.hi.length * 2);
+    pool = {hi: new Uint32Array(size), lo: new Uint32Array(size), order: new Uint32Array(size), tmp: new Uint32Array(size)};
+    stringPools[depth] = pool;
+  }
+  return pool;
+};
+
+const commonPrefixFrom = (strings: string[], idx: Uint32Array, n: number, offset: number): number => {
+  const first = strings[idx[0]];
+  let common = first.length;
+  for (let i = 1; i < n && common > offset; i++) {
+    const s = strings[idx[i]];
+    const limit = Math.min(common, s.length);
+    let c = offset;
+    while (c < limit && s.charCodeAt(c) === first.charCodeAt(c)) {
+      c++;
+    }
+    common = c;
+  }
+  return common;
+};
+
+const packWindow = (s: string, from: number, to: number): number => {
+  let packed = 0;
+  for (let p = from; p < to; p++) {
+    const code = p < s.length ? s.charCodeAt(p) + 1 : 0;
+    if (code > 0xff) {
+      return -1;
+    }
+    packed = (packed << 8) | code;
+  }
+  return packed >>> 0;
+};
+
+const windowSort = (strings: string[], idx: Uint32Array, n: number, offset: number, depth: number, sorted: string[], sink: Sink): boolean => {
+  if (n <= WINDOW_SMALL) {
+    const run = new Array<string>(n);
+    for (let i = 0; i < n; i++) {
+      run[i] = strings[idx[i]];
+    }
+    run.sort();
+    for (let i = 0; i < n; i++) {
+      sorted[sink.pos++] = run[i];
+    }
+    return true;
+  }
+  const start = commonPrefixFrom(strings, idx, n, offset);
+  const pool = stringPoolAt(depth, n);
+  const {hi, lo} = pool;
+  let ended = true;
+  for (let i = 0; i < n; i++) {
+    const s = strings[idx[i]];
+    if (s.length > start) {
+      ended = false;
+    }
+    const h = packWindow(s, start, start + 4);
+    const l = packWindow(s, start + 4, start + WINDOW);
+    if (h < 0 || l < 0) {
+      return false;
+    }
+    hi[i] = h;
+    lo[i] = l;
+  }
+  if (ended) {
+    for (let i = 0; i < n; i++) {
+      sorted[sink.pos++] = strings[idx[i]];
+    }
+    return true;
+  }
+  let order = pool.order;
+  let tmp = pool.tmp;
+  for (let i = 0; i < n; i++) {
+    order[i] = i;
+  }
+  for (let p = 0; p < 6; p++) {
+    const digit = p % 3;
+    const shift = digit * RADIX_BITS;
+    const mask = digit === 2 ? 0x3ff : RADIX_MASK;
+    if (radixPass(p < 3 ? lo : hi, shift, mask, order, tmp, n)) {
+      const t = order;
+      order = tmp;
+      tmp = t;
+    }
+  }
+  let runStart = 0;
+  for (let t = 1; t <= n; t++) {
+    if (t === n || hi[order[t]] !== hi[order[runStart]] || lo[order[t]] !== lo[order[runStart]]) {
+      if (t - runStart === 1) {
+        sorted[sink.pos++] = strings[idx[order[runStart]]];
+      } else {
+        const run = new Uint32Array(t - runStart);
+        for (let q = runStart; q < t; q++) {
+          run[q - runStart] = idx[order[q]];
+        }
+        if (!windowSort(strings, run, run.length, start + WINDOW, depth + 1, sorted, sink)) {
+          return false;
+        }
+      }
+      runStart = t;
+    }
+  }
+  return true;
+};
+
+const sortUniqueStrings = (strings: string[]) => {
+  const n = strings.length;
+  const idx = new Uint32Array(n);
+  for (let i = 0; i < n; i++) {
+    idx[i] = i;
+  }
+  const sorted = new Array<string>(n);
+  if (!windowSort(strings, idx, n, 0, 0, sorted, {out: idx, pos: 0})) {
+    strings.sort();
+    return;
+  }
+  for (let i = 0; i < n; i++) {
+    strings[i] = sorted[i];
+  }
+};
+
 const comparatorFrom = (columns: SortColumn[], c: number) => (a: number, b: number) => {
   for (let d = c; d < columns.length; d++) {
     const {keys, desc, specialClass, specialsFirst, compare} = columns[d];
@@ -391,7 +522,11 @@ const sortBuckets = (comparable: number[], columns: SortColumn[], c: number, str
   }
   const unique = Array.from(heads.keys());
   if (strings) {
-    (unique as string[]).sort();
+    if (unique.length >= WINDOW_MIN) {
+      sortUniqueStrings(unique as string[]);
+    } else {
+      (unique as string[]).sort();
+    }
   } else {
     (unique as number[]).sort(byNumber);
   }
@@ -405,6 +540,44 @@ const sortBuckets = (comparable: number[], columns: SortColumn[], c: number, str
       emitChain(heads.get(unique[u])!, next, columns, nextColumn, sink);
     }
   }
+};
+
+const sortedRuns = (comparable: number[], columns: SortColumn[], c: number, sink: Sink): boolean => {
+  const {keys, desc} = columns[c];
+  const n = comparable.length;
+  let ascending = true;
+  let descending = true;
+  for (let t = 1; t < n && (ascending || descending); t++) {
+    const prev = keys[comparable[t - 1]] as number;
+    const next = keys[comparable[t]] as number;
+    if (prev > next) {
+      ascending = false;
+    } else if (prev < next) {
+      descending = false;
+    }
+  }
+  if (!ascending && !descending) {
+    return false;
+  }
+  const nextColumn = c + 1;
+  if (ascending === !desc) {
+    let start = 0;
+    for (let t = 1; t <= n; t++) {
+      if (t === n || keys[comparable[t]] !== keys[comparable[start]]) {
+        emitSlice(comparable, start, t, columns, nextColumn, sink);
+        start = t;
+      }
+    }
+    return true;
+  }
+  let end = n;
+  for (let t = n - 1; t >= 0; t--) {
+    if (t === 0 || keys[comparable[t - 1]] !== keys[comparable[t]]) {
+      emitSlice(comparable, t, end, columns, nextColumn, sink);
+      end = t;
+    }
+  }
+  return true;
 };
 
 const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sink): void => {
@@ -448,6 +621,8 @@ const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sin
       }
     } else if (n <= SMALL) {
       sortSmall(comparable, columns, c, sink);
+    } else if (sortedRuns(comparable, columns, c, sink)) {
+      return;
     } else if (numbers && n >= RADIX_MIN) {
       sortNumbers(comparable, columns, c, sink);
     } else {
@@ -503,3 +678,28 @@ export const sortBy = <T>(
   items: readonly T[],
   ...iteratees: Array<SortIteratee<T> | readonly SortIteratee<T>[]>
 ): T[] => orderBy(items, iteratees.flat() as SortIteratee<T>[]);
+
+export type NullsOrder = "first" | "last";
+
+export type SortRule<T> = {
+  by: SortIteratee<T>;
+  order?: SortOrder;
+  nulls?: NullsOrder;
+};
+
+const nullClass = (key: unknown): number => (key === null || key === undefined ? 1 : 0);
+
+export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[]): T[] =>
+  orderByColumns(
+    items,
+    rules.map(({by, order, nulls}) => {
+      const desc = order === "desc";
+      const get = toGetter(by);
+      return {
+        keys: items.map(get),
+        desc,
+        specialClass: nullClass,
+        specialsFirst: nulls === undefined ? desc : nulls === "first",
+      };
+    })
+  );

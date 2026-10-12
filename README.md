@@ -3,22 +3,36 @@
 Stable multi-key sort for arrays of records with the ordering semantics of lodash `sortBy`/`orderBy`, several times faster.
 
 - Keys are computed once per item per column, never inside a comparator.
-- Numeric columns are sorted with a stable LSD radix sort on the float64 bits; string columns with a native sort of the unique keys over bucket lists; ties recurse into the next column inside their bucket.
+- Numeric columns are sorted with a stable LSD radix sort on the float64 bits. String columns are bucketed by key; a few distinct keys are sorted natively, many distinct keys go through an MSD radix sort over 8-character windows after the common prefix. Ties recurse into the next column inside their bucket. Already ordered columns are detected and passed through.
 - Columns with anything else (`NaN`, booleans, objects, symbols, mixed numbers and strings) fall back to the exact lodash comparator chain over the whole range, so the resulting permutation is identical to lodash even where its comparator is not transitive.
-- `null`, `undefined` and symbols sort like lodash: after values ascending, before them descending.
+- `null`, `undefined` and symbols sort like lodash: after values ascending, before them descending. `multisort` lets each rule choose `nulls: "first" | "last"` instead.
 - Zero dependencies, ESM and CJS, TypeScript types included.
 
 ## Usage
 
 ```ts
-import {orderBy, sortBy} from "fast-multisort";
+import {multisort, orderBy, sortBy} from "fast-multisort";
+
+multisort(tasks, [
+  {by: "dueDate", nulls: "last"},
+  {by: (task) => task.priority, order: "desc", nulls: "first"},
+  {by: "title"},
+]);
 
 sortBy(users, (user) => user.lastName);
 sortBy(users, "lastName", "firstName");
 orderBy(users, [(user) => user.age, "lastName"], ["desc", "asc"]);
 ```
 
-Both return a new array and never mutate the input. `sortBy` takes iteratees as rest arguments or as one array; `orderBy` takes an array of iteratees and an array of `"asc" | "desc"` (missing entries mean `"asc"`). An iteratee is a function or a property name.
+All three return a new array and never mutate the input. An iteratee (`by`) is a function or a property name.
+
+### multisort
+
+`multisort(items, rules)` is the API this package exists for. Each rule has `by`, an optional `order` (`"asc"` by default) and an optional `nulls` (`"first"` or `"last"`). `null` and `undefined` are the same null and keep their input order among themselves. When `nulls` is omitted a rule behaves like lodash and SQL: nulls last ascending, nulls first descending.
+
+### sortBy and orderBy
+
+Drop-in for lodash. `sortBy` takes iteratees as rest arguments or as one array; `orderBy` takes an array of iteratees and an array of `"asc" | "desc"` (missing entries mean `"asc"`). Unlike `multisort`, these keep every lodash quirk, including `undefined` sorting after `null`.
 
 ### Columns with your own contract
 
