@@ -1,0 +1,42 @@
+{
+  "name": "fast-multisort",
+  "version": "0.1.0",
+  "description": "Stable multi-key sort for arrays of records: radix for numbers, buckets for strings, lodash orderBy semantics.",
+  "keywords": ["sort", "sortBy", "orderBy", "multisort", "radix", "stable", "fast"],
+  "author": "Nikita <dev.nkh@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {"node": ">=20"},
+  "files": ["dist", "LICENSE", "README.md"],
+  "exports": {
+    ".": {
+      "import": {"types": "./dist/index.d.mts", "default": "./dist/index.mjs"},
+      "require": {"types": "./dist/index.d.cts", "default": "./dist/index.cjs"}
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "bench": "pnpm run build && node benchmark/index.js",
+    "size": "pnpm run build && node -e \"const z=require('zlib'),f=require('fs');const b=f.readFileSync('dist/index.mjs');console.log(b.length,'B raw',z.brotliCompressSync(b).length,'B brotli')\""
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.10.1",
+    "cli-table3": "^0.6.5",
+    "es-toolkit": "^1.49.0",
+    "fast-check": "^4.10.2",
+    "fast-sort": "^3.4.1",
+    "lodash": "^4.18.1",
+    "sort-array": "^5.0.0",
+    "tinybench": "^5.1.0",
+    "tsdown": "^0.23.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}
