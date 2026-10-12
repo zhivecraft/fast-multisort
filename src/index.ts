@@ -180,6 +180,7 @@ const compareClasses = (a: number, b: number) => (a === 0 ? -1 : b === 0 ? 1 : a
 const WINDOW_MIN = 256;
 const WINDOW = 8;
 const WINDOW_SMALL = 64;
+const WINDOW_SCAN = 64;
 
 type StringPool = {hi: Uint32Array; lo: Uint32Array; order: Uint32Array; tmp: Uint32Array};
 
@@ -195,25 +196,27 @@ const stringPoolAt = (depth: number, n: number): StringPool => {
   return pool;
 };
 
-const commonPrefixFrom = (strings: string[], idx: Uint32Array, n: number, offset: number): number => {
+const codeAt = (s: string, p: number) => (p < s.length ? s.charCodeAt(p) + 1 : 0);
+
+const varyingPositions = (strings: string[], idx: Uint32Array, n: number, offset: number, positions: Int32Array): number => {
   const first = strings[idx[0]];
-  let common = first.length;
-  for (let i = 1; i < n && common > offset; i++) {
-    const s = strings[idx[i]];
-    const limit = Math.min(common, s.length);
-    let c = offset;
-    while (c < limit && s.charCodeAt(c) === first.charCodeAt(c)) {
-      c++;
+  let found = 0;
+  for (let p = offset; p < offset + WINDOW_SCAN && found < WINDOW; p++) {
+    const code = codeAt(first, p);
+    for (let i = 1; i < n; i++) {
+      if (codeAt(strings[idx[i]], p) !== code) {
+        positions[found++] = p;
+        break;
+      }
     }
-    common = c;
   }
-  return common;
+  return found;
 };
 
-const packWindow = (s: string, from: number, to: number): number => {
+const packWindow = (s: string, positions: Int32Array, from: number, to: number): number => {
   let packed = 0;
-  for (let p = from; p < to; p++) {
-    const code = p < s.length ? s.charCodeAt(p) + 1 : 0;
+  for (let q = from; q < to; q++) {
+    const code = codeAt(s, positions[q]);
     if (code > 0xff) {
       return -1;
     }
@@ -221,6 +224,8 @@ const packWindow = (s: string, from: number, to: number): number => {
   }
   return packed >>> 0;
 };
+
+const positionsPool: Int32Array[] = [];
 
 const windowSort = (strings: string[], idx: Uint32Array, n: number, offset: number, depth: number, sorted: string[], sink: Sink): boolean => {
   if (n <= WINDOW_SMALL) {
@@ -234,28 +239,41 @@ const windowSort = (strings: string[], idx: Uint32Array, n: number, offset: numb
     }
     return true;
   }
-  const start = commonPrefixFrom(strings, idx, n, offset);
+  const positions = (positionsPool[depth] ??= new Int32Array(WINDOW));
+  let found = 0;
+  let scanFrom = offset;
+  for (;;) {
+    found = varyingPositions(strings, idx, n, scanFrom, positions);
+    if (found > 0) {
+      break;
+    }
+    let ended = true;
+    for (let i = 0; i < n && ended; i++) {
+      ended = strings[idx[i]].length <= scanFrom + WINDOW_SCAN;
+    }
+    if (ended) {
+      for (let i = 0; i < n; i++) {
+        sorted[sink.pos++] = strings[idx[i]];
+      }
+      return true;
+    }
+    scanFrom += WINDOW_SCAN;
+  }
+  for (let q = found; q < WINDOW; q++) {
+    positions[q] = -1;
+  }
+  const next = positions[found - 1] + 1;
   const pool = stringPoolAt(depth, n);
   const {hi, lo} = pool;
-  let ended = true;
   for (let i = 0; i < n; i++) {
     const s = strings[idx[i]];
-    if (s.length > start) {
-      ended = false;
-    }
-    const h = packWindow(s, start, start + 4);
-    const l = packWindow(s, start + 4, start + WINDOW);
+    const h = packWindow(s, positions, 0, 4);
+    const l = packWindow(s, positions, 4, WINDOW);
     if (h < 0 || l < 0) {
       return false;
     }
     hi[i] = h;
     lo[i] = l;
-  }
-  if (ended) {
-    for (let i = 0; i < n; i++) {
-      sorted[sink.pos++] = strings[idx[i]];
-    }
-    return true;
   }
   let order = pool.order;
   let tmp = pool.tmp;
@@ -282,7 +300,7 @@ const windowSort = (strings: string[], idx: Uint32Array, n: number, offset: numb
         for (let q = runStart; q < t; q++) {
           run[q - runStart] = idx[order[q]];
         }
-        if (!windowSort(strings, run, run.length, start + WINDOW, depth + 1, sorted, sink)) {
+        if (!windowSort(strings, run, run.length, next, depth + 1, sorted, sink)) {
           return false;
         }
       }
@@ -317,7 +335,9 @@ const comparatorFrom = (columns: SortColumn[], c: number) => (a: number, b: numb
       const result = compareClasses(classA, classB);
       return specialsFirst ? -result : result;
     }
-    const result = (classA === 0 ? (compare ?? compareAscending) : compareAscending)(keys[a], keys[b]);
+    const keyA = keys[a];
+    const result =
+      classA === 0 ? (compare ?? compareAscending)(keyA, keys[b]) : Number.isNaN(keyA) ? compareAscending(keyA, keys[b]) : 0;
     if (result !== 0) {
       return desc ? -result : result;
     }
@@ -634,14 +654,115 @@ const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sin
   }
 };
 
+const TINY = 128;
+
+const isPlainColumn = ({keys, specialClass, compare}: SortColumn) => {
+  if (compare !== undefined) {
+    return false;
+  }
+  const kind = typeof keys[0];
+  if (kind !== "number" && kind !== "string") {
+    return false;
+  }
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (typeof key !== kind || specialClass(key) !== 0 || Number.isNaN(key)) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const tinyComparator = (columns: SortColumn[]) => {
+  if (!columns.every(isPlainColumn)) {
+    return comparatorFrom(columns, 0);
+  }
+  if (columns.length === 1) {
+    const {keys, desc} = columns[0];
+    return desc
+      ? (a: number, b: number) => {
+          const x = keys[a] as number;
+          const y = keys[b] as number;
+          return x < y ? 1 : x > y ? -1 : 0;
+        }
+      : (a: number, b: number) => {
+          const x = keys[a] as number;
+          const y = keys[b] as number;
+          return x < y ? -1 : x > y ? 1 : 0;
+        };
+  }
+  return (a: number, b: number) => {
+    for (let c = 0; c < columns.length; c++) {
+      const {keys, desc} = columns[c];
+      const x = keys[a] as number;
+      const y = keys[b] as number;
+      if (x !== y) {
+        return (x < y) === desc ? 1 : -1;
+      }
+    }
+    return 0;
+  };
+};
+
+const orderedCopy = <T>(items: readonly T[], column: SortColumn): T[] | null => {
+  const {keys, desc, specialClass} = column;
+  const n = keys.length;
+  const first = keys[0];
+  const kind = typeof first;
+  if ((kind !== "number" && kind !== "string") || specialClass(first) !== 0 || Number.isNaN(first)) {
+    return null;
+  }
+  let nonDecreasing = true;
+  let nonIncreasing = true;
+  let strict = true;
+  for (let i = 1; i < n; i++) {
+    const key = keys[i];
+    if (typeof key !== kind || specialClass(key) !== 0 || Number.isNaN(key)) {
+      return null;
+    }
+    const prev = keys[i - 1] as number;
+    const next = key as number;
+    if (prev > next) {
+      nonDecreasing = false;
+    } else if (prev < next) {
+      nonIncreasing = false;
+    } else {
+      strict = false;
+    }
+    if (!nonDecreasing && !nonIncreasing) {
+      return null;
+    }
+  }
+  if (desc ? nonIncreasing : nonDecreasing) {
+    return items.slice();
+  }
+  if (strict) {
+    const result = new Array<T>(n);
+    for (let i = 0; i < n; i++) {
+      result[i] = items[n - 1 - i];
+    }
+    return result;
+  }
+  return null;
+};
+
 export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T[] => {
   const n = items.length;
   if (n < 2) {
     return items.slice();
   }
+  if (columns.length === 1) {
+    const ordered = orderedCopy(items, columns[0]);
+    if (ordered !== null) {
+      return ordered;
+    }
+  }
   const indices = new Array<number>(n);
   for (let i = 0; i < n; i++) {
     indices[i] = i;
+  }
+  if (n <= TINY) {
+    return indices.sort(tinyComparator(columns)).map((i) => items[i]);
   }
   if (!columns.every(isFastColumn)) {
     return indices.sort(comparatorFrom(columns, 0)).map((i) => items[i]);

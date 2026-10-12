@@ -111,7 +111,8 @@ const libraries = (rows, c) => {
 
 const permutation = (sorted, rows) => sorted.map((x) => rows.indexOf(x)).join(",");
 
-const sizes = quick ? [10_000] : [100, 1_000, 10_000, 100_000];
+const sizesArg = [...args].find((a) => a.startsWith("--sizes="));
+const sizes = sizesArg ? sizesArg.slice(8).split(",").map(Number) : quick ? [10_000] : [100, 1_000, 10_000, 100_000];
 const results = [];
 for (const size of sizes) {
   const rows = makeRows(size);

@@ -43,7 +43,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "bench": "pnpm run build && node benchmark/index.js",
-    "size": "pnpm run build && node -e \"const z=require('zlib'),f=require('fs');const b=f.readFileSync('dist/index.mjs');console.log(b.length,'B raw',z.brotliCompressSync(b).length,'B brotli')\""
+    "size": "pnpm run build && node -e \"const z=require('zlib'),f=require('fs');const b=f.readFileSync('dist/index.mjs');console.log(b.length,'B raw',z.brotliCompressSync(b).length,'B brotli')\"",
+    "bench:readme": "node benchmark/index.js --markdown > benchmark/results.md && node benchmark/update-readme.js"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
