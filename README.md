@@ -6,7 +6,7 @@ The ambition is simple: be for sorting what [fast-equals](https://github.com/pla
 
 - Stable. Keys are read once per item, never inside a comparator.
 - `multisort` puts nulls first or last per rule; `sortBy`/`orderBy` are drop-ins for lodash down to its quirks.
-- Zero dependencies, ESM and CJS, types included.
+- Zero dependencies, ESM and CJS, types included. Needs `Array.prototype.toSorted` (ES2023: Node 20, Chrome 110, Safari 16, Firefox 115).
 
 ## Usage
 
