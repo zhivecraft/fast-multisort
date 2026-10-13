@@ -746,6 +746,207 @@ const orderedCopy = <T>(items: readonly T[], column: SortColumn): T[] | null => 
   return null;
 };
 
+const SAMPLE = 16;
+
+const sampleHasDuplicates = (keys: unknown[], comparable: number[]) => {
+  const limit = Math.min(SAMPLE, comparable.length);
+  for (let i = 1; i < limit; i++) {
+    const key = keys[comparable[i]];
+    for (let j = 0; j < i; j++) {
+      if (keys[comparable[j]] === key) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const tinyPositions = new Int32Array(WINDOW);
+const tinyHi = new Float64Array(TINY);
+const tinyLo = new Float64Array(TINY);
+
+const packedStringOrder = (keys: unknown[], comparable: number[], desc: boolean): boolean => {
+  const m = comparable.length;
+  const first = keys[comparable[0]] as string;
+  let found = 0;
+  for (let p = 0; p < WINDOW_SCAN && found < WINDOW; p++) {
+    const code = codeAt(first, p);
+    for (let t = 1; t < m; t++) {
+      if (codeAt(keys[comparable[t]] as string, p) !== code) {
+        tinyPositions[found++] = p;
+        break;
+      }
+    }
+  }
+  if (found === 0) {
+    return true;
+  }
+  for (let q = found; q < WINDOW; q++) {
+    tinyPositions[q] = -1;
+  }
+  for (let t = 0; t < m; t++) {
+    const key = keys[comparable[t]] as string;
+    const h = packWindow(key, tinyPositions, 0, 4);
+    const l = packWindow(key, tinyPositions, 4, WINDOW);
+    if (h < 0 || l < 0) {
+      return false;
+    }
+    tinyHi[t] = h;
+    tinyLo[t] = l;
+  }
+  const slot = new Int32Array(keys.length);
+  for (let t = 0; t < m; t++) {
+    slot[comparable[t]] = t;
+  }
+  const sign = desc ? -1 : 1;
+  comparable.sort((a, b) => {
+    const x = slot[a];
+    const y = slot[b];
+    const byHi = tinyHi[x] - tinyHi[y];
+    if (byHi !== 0) {
+      return sign * byHi;
+    }
+    const byLo = tinyLo[x] - tinyLo[y];
+    if (byLo !== 0) {
+      return sign * byLo;
+    }
+    const kx = keys[a] as string;
+    const ky = keys[b] as string;
+    return kx === ky ? 0 : (kx < ky) === desc ? 1 : -1;
+  });
+  return true;
+};
+
+const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
+  const {keys, desc, specialClass, specialsFirst, compare} = column;
+  if (compare !== undefined) {
+    return null;
+  }
+  const n = keys.length;
+  let classes: number[][] | null = null;
+  let kind = "";
+  const comparable: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const key = keys[i];
+    if (Number.isNaN(key)) {
+      return null;
+    }
+    const cls = specialClass(key);
+    if (cls !== 0) {
+      ((classes ??= [])[cls] ??= []).push(i);
+      continue;
+    }
+    const type = typeof key;
+    if (type !== "number" && type !== "string") {
+      return null;
+    }
+    if (kind === "") {
+      kind = type;
+    } else if (type !== kind) {
+      return null;
+    }
+    comparable.push(i);
+  }
+  const m = comparable.length;
+  let ordered = comparable;
+  if (kind === "string" && sampleHasDuplicates(keys, comparable)) {
+    const rankOf: Record<string, number> = Object.create(null);
+    const unique: string[] = [];
+    for (let t = 0; t < m; t++) {
+      const key = keys[comparable[t]] as string;
+      if (rankOf[key] === undefined) {
+        rankOf[key] = 0;
+        unique.push(key);
+      }
+    }
+    unique.sort();
+    const last = unique.length - 1;
+    for (let u = 0; u <= last; u++) {
+      rankOf[unique[u]] = desc ? last - u : u;
+    }
+    const counts = new Int32Array(unique.length + 1);
+    const ranks = new Int32Array(m);
+    for (let t = 0; t < m; t++) {
+      const rank = rankOf[keys[comparable[t]] as string];
+      ranks[t] = rank;
+      counts[rank + 1]++;
+    }
+    for (let u = 0; u <= last; u++) {
+      counts[u + 1] += counts[u];
+    }
+    ordered = new Array<number>(m);
+    for (let t = 0; t < m; t++) {
+      ordered[counts[ranks[t]]++] = comparable[t];
+    }
+  } else if (kind === "string") {
+    if (!packedStringOrder(keys, comparable, desc)) {
+      comparable.sort(
+        desc
+          ? (a, b) => {
+              const x = keys[a] as string;
+              const y = keys[b] as string;
+              return x < y ? 1 : x > y ? -1 : 0;
+            }
+          : (a, b) => {
+              const x = keys[a] as string;
+              const y = keys[b] as string;
+              return x < y ? -1 : x > y ? 1 : 0;
+            }
+      );
+    }
+  } else {
+    comparable.sort(
+      desc
+        ? (a, b) => {
+            const x = keys[a] as number;
+            const y = keys[b] as number;
+            return x < y ? 1 : x > y ? -1 : 0;
+          }
+        : (a, b) => {
+            const x = keys[a] as number;
+            const y = keys[b] as number;
+            return x < y ? -1 : x > y ? 1 : 0;
+          }
+    );
+  }
+  const result = new Array<T>(n);
+  let pos = 0;
+  const emitClasses = () => {
+    if (classes === null) {
+      return;
+    }
+    if (specialsFirst) {
+      for (let cls = classes.length - 1; cls >= 1; cls--) {
+        const bucket = classes[cls];
+        if (bucket !== undefined) {
+          for (let t = 0; t < bucket.length; t++) {
+            result[pos++] = items[bucket[t]];
+          }
+        }
+      }
+    } else {
+      for (let cls = 1; cls < classes.length; cls++) {
+        const bucket = classes[cls];
+        if (bucket !== undefined) {
+          for (let t = 0; t < bucket.length; t++) {
+            result[pos++] = items[bucket[t]];
+          }
+        }
+      }
+    }
+  };
+  if (specialsFirst) {
+    emitClasses();
+  }
+  for (let t = 0; t < m; t++) {
+    result[pos++] = items[ordered[t]];
+  }
+  if (!specialsFirst) {
+    emitClasses();
+  }
+  return result;
+};
+
 export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T[] => {
   const n = items.length;
   if (n < 2) {
@@ -755,6 +956,12 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
     const ordered = orderedCopy(items, columns[0]);
     if (ordered !== null) {
       return ordered;
+    }
+  }
+  if (n <= TINY && columns.length === 1) {
+    const single = tinySingle(items, columns[0]);
+    if (single !== null) {
+      return single;
     }
   }
   const indices = new Array<number>(n);
@@ -780,11 +987,53 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
 const toGetter = <T>(iteratee: SortIteratee<T>) =>
   typeof iteratee === "function" ? iteratee : (item: T) => item[iteratee];
 
+const SHORT_STRING = 12;
+
+const tinyShortStringSort = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean): T[] | null => {
+  const n = items.length;
+  const sample = Math.min(SAMPLE, n);
+  for (let i = 0; i < sample; i++) {
+    const key = get(items[i]);
+    if (typeof key !== "string" || key.length > SHORT_STRING) {
+      return null;
+    }
+    for (let j = 0; j < i; j++) {
+      if (get(items[j]) === key) {
+        return null;
+      }
+    }
+  }
+  for (let i = sample; i < n; i++) {
+    if (typeof get(items[i]) !== "string") {
+      return null;
+    }
+  }
+  return items.slice().sort(
+    desc
+      ? (p, q) => {
+          const x = get(p) as string;
+          const y = get(q) as string;
+          return x < y ? 1 : x > y ? -1 : 0;
+        }
+      : (p, q) => {
+          const x = get(p) as string;
+          const y = get(q) as string;
+          return x < y ? -1 : x > y ? 1 : 0;
+        }
+  );
+};
+
 export const orderBy = <T>(
   items: readonly T[],
   iteratees: readonly SortIteratee<T>[],
   orders: readonly SortOrder[] = []
 ): T[] => {
+  if (iteratees.length === 1 && items.length <= TINY && items.length > 1) {
+    const tiny = tinyShortStringSort(items, toGetter(iteratees[0]), orders[0] === "desc");
+    if (tiny !== null) {
+      return tiny;
+    }
+  }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   return orderByColumns(
     items,
