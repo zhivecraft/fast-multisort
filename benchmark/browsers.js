@@ -6,7 +6,13 @@ execFileSync("node_modules/.bin/esbuild", ["benchmark/browser-entry.js", "--bund
 const code = fs.readFileSync("benchmark/.browser-bundle.js", "utf8");
 const lines = [];
 for (const [label, engine] of [["Chromium", chromium], ["WebKit", webkit], ["Firefox", firefox]]) {
-  const browser = await engine.launch();
+  const browser = await engine.launch({timeout: 60_000}).catch((error) => {
+    console.error(`${label} did not launch: ${String(error.message).split("\n")[0]}`);
+    return null;
+  });
+  if (browser === null) {
+    continue;
+  }
   const page = await browser.newPage();
   const version = browser.version();
   const results = await page.evaluate((src) => {
