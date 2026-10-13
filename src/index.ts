@@ -676,7 +676,7 @@ const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sin
     sink.out[sink.pos++] = comparable[0];
   } else if (n > 1) {
     if (column.compare !== undefined) {
-      const sorted = comparable.slice().sort(comparatorFrom(columns, c));
+      const sorted = comparable.toSorted(comparatorFrom(columns, c));
       for (let t = 0; t < n; t++) {
         sink.out[sink.pos++] = sorted[t];
       }
@@ -1154,6 +1154,43 @@ const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc
   return null;
 };
 
+const DIRECT = 16;
+
+type Getter<T> = (item: T) => unknown;
+
+const lodashChain =
+  <T>(getters: Getter<T>[], descs: boolean[]) =>
+  (a: T, b: T) => {
+    for (let c = 0; c < getters.length; c++) {
+      const result = compareAscending(getters[c](a), getters[c](b));
+      if (result !== 0) {
+        return descs[c] ? -result : result;
+      }
+    }
+    return 0;
+  };
+
+const nullsChain =
+  <T>(getters: Getter<T>[], descs: boolean[], nullsFirst: boolean[]) =>
+  (a: T, b: T) => {
+    for (let c = 0; c < getters.length; c++) {
+      const x = getters[c](a);
+      const y = getters[c](b);
+      const xNull = x === null || x === undefined;
+      const yNull = y === null || y === undefined;
+      if (xNull !== yNull) {
+        return xNull === nullsFirst[c] ? -1 : 1;
+      }
+      if (!xNull) {
+        const result = compareAscending(x, y);
+        if (result !== 0) {
+          return descs[c] ? -result : result;
+        }
+      }
+    }
+    return 0;
+  };
+
 export const orderBy = <T>(
   items: readonly T[],
   iteratees: readonly SortIteratee<T>[],
@@ -1161,6 +1198,15 @@ export const orderBy = <T>(
 ): T[] => {
   if (items.length < 2) {
     return items.slice();
+  }
+  if (items.length <= DIRECT && !items.includes(undefined as T)) {
+    const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
+    return items.toSorted(
+      lodashChain(
+        getters,
+        getters.map((_, c) => orders[c] === "desc")
+      )
+    );
   }
   if (iteratees.length === 1) {
     const desc = orders[0] === "desc";
@@ -1190,8 +1236,8 @@ export type NullsOrder = "first" | "last";
 
 export type SortRule<T> = {
   by: SortIteratee<T>;
-  order?: SortOrder;
-  nulls?: NullsOrder;
+  order?: SortOrder | undefined;
+  nulls?: NullsOrder | undefined;
 };
 
 const nullClass = (key: unknown): number => (key === null || key === undefined ? 1 : 0);
@@ -1199,6 +1245,16 @@ const nullClass = (key: unknown): number => (key === null || key === undefined ?
 export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[]): T[] => {
   if (items.length < 2) {
     return items.slice();
+  }
+  if (items.length <= DIRECT && !items.includes(undefined as T)) {
+    const descs = rules.map(({order}) => order === "desc");
+    return items.toSorted(
+      nullsChain(
+        rules.map(({by}) => toGetter(by)),
+        descs,
+        rules.map(({nulls}, c) => (nulls === undefined ? descs[c] : nulls === "first"))
+      )
+    );
   }
   return orderByColumns(
     items,

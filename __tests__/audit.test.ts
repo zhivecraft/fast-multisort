@@ -237,3 +237,35 @@ describe("scratch memory", () => {
     expect(allocated).toBeLessThan(4 * n);
   });
 });
+
+describe("direct small-input path", () => {
+  it("sorts undefined items by their keys like lodash", () => {
+    const rows = [{x: 2}, undefined, {x: 1}, undefined];
+    const get = (row: {x: number} | undefined) => row?.x ?? 0;
+    expect(orderBy(rows, [get])).toEqual(lodashOrderBy(rows, [get]));
+    expect(multisort(rows, [{by: get, order: "desc"}])).toEqual([{x: 2}, {x: 1}, undefined, undefined]);
+  });
+
+  it("agrees with the large path on every small input", () => {
+    const key = fc.oneof(fc.integer({min: -2, max: 2}), fc.constantFrom<unknown>(null, undefined, "a", "b", NaN));
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({a: key, b: key}), {maxLength: 32}),
+        fc.array(fc.constantFrom("asc" as const, "desc" as const), {maxLength: 2}),
+        fc.array(fc.constantFrom<"first" | "last" | undefined>("first", "last", undefined), {maxLength: 2}),
+        (items, orders, nulls) => {
+          const rows = items.map((item, id) => ({...item, id}));
+          const padded = rows.concat(Array.from({length: 40}, (_, i) => ({a: 99, b: 99, id: 1000 + i})));
+          const ids = (xs: Array<{id: number}>) => xs.map((x) => x.id).filter((id) => id < 1000);
+          expect(ids(orderBy(rows, ["a", "b"], orders))).toEqual(ids(orderBy(padded, ["a", "b"], orders)));
+          const rules = [
+            {by: "a" as const, order: orders[0], nulls: nulls[0]},
+            {by: "b" as const, order: orders[1], nulls: nulls[1]},
+          ];
+          expect(ids(multisort(rows, rules))).toEqual(ids(multisort(padded, rules)));
+        }
+      ),
+      {numRuns: 500}
+    );
+  });
+});
