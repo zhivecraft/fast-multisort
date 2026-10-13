@@ -6,7 +6,7 @@ export type SortColumn = {
   desc: boolean;
   specialClass: (key: unknown) => number;
   specialsFirst: boolean;
-  compare?: (a: unknown, b: unknown) => number;
+  compare?: ((a: unknown, b: unknown) => number) | undefined;
 };
 
 const isSymbol = (value: unknown): boolean =>
