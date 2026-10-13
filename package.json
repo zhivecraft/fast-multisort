@@ -44,7 +44,8 @@
     "test": "vitest run",
     "bench": "pnpm run build && node benchmark/index.js",
     "size": "pnpm run build && node -e \"const z=require('zlib'),f=require('fs');const b=f.readFileSync('dist/index.mjs');console.log(b.length,'B raw',z.brotliCompressSync(b).length,'B brotli')\"",
-    "bench:readme": "node benchmark/index.js --markdown > benchmark/results.md && node benchmark/update-readme.js"
+    "bench:readme": "node benchmark/index.js --markdown > benchmark/results.md && node benchmark/update-readme.js",
+    "bench:browsers": "pnpm run build && node benchmark/browsers.js"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
@@ -54,11 +55,13 @@
     "array-sort": "^1.0.0",
     "cli-table3": "^0.6.5",
     "es-toolkit": "^1.49.0",
+    "esbuild": "^0.28.2",
     "fast-check": "^4.10.2",
     "fast-sort": "^3.4.1",
     "just-sort-by": "^3.2.0",
     "lodash": "^4.18.1",
     "natural-orderby": "^5.0.0",
+    "playwright": "1.61.1",
     "ramda": "^0.32.0",
     "remeda": "^2.51.0",
     "sort-array": "^5.0.0",
