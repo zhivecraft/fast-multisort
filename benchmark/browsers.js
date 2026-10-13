@@ -16,7 +16,7 @@ const viaPlaywright = (engine) => async () => {
   const browser = await engine.launch({timeout: 60_000});
   try {
     const tab = await browser.newPage();
-    await tab.goto(pageUrl);
+    await tab.goto(pageUrl, {timeout: 120_000});
     return {version: browser.version(), markdown: await tab.evaluate(() => globalThis.__results)};
   } finally {
     await browser.close();

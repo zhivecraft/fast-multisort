@@ -142,6 +142,7 @@ export const run = async (onCase = () => {}, only = sizes) => {
       };
       results.push(entry);
       onCase(entry);
+      await new Promise((resolve) => setTimeout(resolve));
     }
   }
   return results;
