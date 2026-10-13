@@ -79,11 +79,26 @@ const cases = [
 const multi = (c) => c.props.length > 1;
 const anyDesc = (c) => c.orders.includes("desc");
 
+
+const str = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const rankAsc = (a, b) => (a === b ? 0 : a === null ? 1 : b === null ? -1 : a - b);
+const rankDesc = (a, b) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : b - a);
+const inlineChains = {
+  "string key, 10 distinct values": (a, b) => str(a.name, b.name),
+  "string key, all unique": (a, b) => str(a.unique, b.unique),
+  "integer key, 10% null": (a, b) => rankAsc(a.rank, b.rank),
+  "float key": (a, b) => a.weight - b.weight,
+  "ISO date string key": (a, b) => str(a.created, b.created),
+  "already sorted integer key": (a, b) => a.sorted - b.sorted,
+  "reverse sorted integer key": (a, b) => a.reversed - b.reversed,
+  "three keys, mixed directions": (a, b) => str(a.name, b.name) || rankDesc(a.rank, b.rank) || str(a.created, b.created),
+};
 const libraries = (rows, c) => {
   const keys = c.props.map(keyOf);
   const signed = c.props.map((p, i) => (c.orders[i] === "desc" ? `-${p}` : p));
   const list = {
     "fast-multisort": () => orderBy(rows, keys, c.orders),
+    "inline comparator chain": () => rows.slice().sort(inlineChains[c.name]),
     "lodash.orderBy": () => lodashOrderBy(rows, keys, c.orders),
     "es-toolkit.orderBy": () => esToolkitOrderBy(rows, keys, c.orders),
     "remeda.sortBy": () => remedaSortBy(rows, ...keys.map((key, i) => [key, c.orders[i]])),
@@ -115,17 +130,35 @@ const permutation = (sorted, rows) => {
 };
 
 const sizesArg = [...args].find((a) => a.startsWith("--sizes="));
-const sizes = sizesArg ? sizesArg.slice(8).split(",").map(Number) : quick ? [10_000] : [100, 1_000, 10_000, 100_000];
+const sizes = sizesArg
+  ? sizesArg.slice(8).split(",").map(Number)
+  : quick
+    ? [10_000]
+    : [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000];
+const bigCases = new Set(["string key, 10 distinct values", "three keys, mixed directions", "integer key, 10% null"]);
+const hugeLibraries = new Set([
+  "fast-multisort",
+  "inline comparator chain",
+  "lodash.orderBy",
+  "es-toolkit.orderBy",
+  "remeda.sortBy",
+  "fast-sort",
+  "thenby",
+  "Array.prototype.sort, decorated",
+]);
 const results = [];
 for (const size of sizes) {
   const rows = makeRows(size);
   for (const c of cases) {
-    if (size === 100_000 && !["string key, 10 distinct values", "three keys, mixed directions", "integer key, 10% null"].includes(c.name)) {
+    if (size >= 100_000 && !bigCases.has(c.name)) {
       continue;
     }
     const bench = new Bench({time: quick ? 200 : 500, warmupTime: 100});
     const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
     for (const [name, run] of Object.entries(libraries(rows, c))) {
+      if (size >= 1_000_000 && !hugeLibraries.has(name)) {
+        continue;
+      }
       let status = "";
       try {
         if (permutation(run(), rows) !== reference) {

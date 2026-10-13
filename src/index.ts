@@ -1159,7 +1159,10 @@ export const orderBy = <T>(
   iteratees: readonly SortIteratee<T>[],
   orders: readonly SortOrder[] = []
 ): T[] => {
-  if (iteratees.length === 1 && items.length > 1) {
+  if (items.length < 2) {
+    return items.slice();
+  }
+  if (iteratees.length === 1) {
     const desc = orders[0] === "desc";
     const keys = new Array<unknown>(items.length);
     const ordered = orderedByGetter(items, toGetter(iteratees[0]), desc, keys);
@@ -1193,8 +1196,11 @@ export type SortRule<T> = {
 
 const nullClass = (key: unknown): number => (key === null || key === undefined ? 1 : 0);
 
-export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[]): T[] =>
-  orderByColumns(
+export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[]): T[] => {
+  if (items.length < 2) {
+    return items.slice();
+  }
+  return orderByColumns(
     items,
     rules.map(({by, order, nulls}) => {
       const desc = order === "desc";
@@ -1207,3 +1213,4 @@ export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[])
       };
     })
   );
+};

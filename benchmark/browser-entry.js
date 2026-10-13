@@ -33,10 +33,25 @@ const cases = [
   {name: "already sorted integer key", props: ["sorted"], orders: ["asc"]},
   {name: "three keys, mixed directions", props: ["name", "rank", "created"], orders: ["asc", "desc", "asc"]},
 ];
+
+const str = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const rankAsc = (a, b) => (a === b ? 0 : a === null ? 1 : b === null ? -1 : a - b);
+const rankDesc = (a, b) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : b - a);
+const inlineChains = {
+  "string key, 10 distinct values": (a, b) => str(a.name, b.name),
+  "string key, all unique": (a, b) => str(a.unique, b.unique),
+  "integer key, 10% null": (a, b) => rankAsc(a.rank, b.rank),
+  "float key": (a, b) => a.weight - b.weight,
+  "ISO date string key": (a, b) => str(a.created, b.created),
+  "already sorted integer key": (a, b) => a.sorted - b.sorted,
+  "reverse sorted integer key": (a, b) => a.reversed - b.reversed,
+  "three keys, mixed directions": (a, b) => str(a.name, b.name) || rankDesc(a.rank, b.rank) || str(a.created, b.created),
+};
 const libraries = (rows, c) => {
   const keys = c.props.map(keyOf);
   return {
     "fast-multisort": () => orderBy(rows, keys, c.orders),
+    "inline comparator chain": () => rows.slice().sort(inlineChains[c.name]),
     "lodash.orderBy": () => lodashOrderBy(rows, keys, c.orders),
     "es-toolkit.orderBy": () => esToolkitOrderBy(rows, keys, c.orders),
     "remeda.sortBy": () => remedaSortBy(rows, ...keys.map((key, i) => [key, c.orders[i]])),
@@ -72,9 +87,9 @@ const permutation = (sorted, rows) => {
   return sorted.map((x) => at.get(x)).join(",");
 };
 const results = [];
-for (const size of [1_000, 10_000]) {
+for (const size of [1, 10, 100, 1_000, 10_000, 100_000]) {
   const rows = makeRows(size);
-  const reps = Math.max(5, Math.round(300_000 / size));
+  const reps = Math.max(3, Math.round(300_000 / size));
   for (const c of cases) {
     const entry = {size, name: c.name, libs: {}, different: []};
     const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
