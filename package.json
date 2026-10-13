@@ -44,7 +44,7 @@
     "test": "vitest run",
     "bench": "pnpm run build && node --max-old-space-size=32768 benchmark/index.js",
     "size": "pnpm run build && node -e \"const z=require('zlib'),f=require('fs');const b=f.readFileSync('dist/index.mjs');console.log(b.length,'B raw',z.brotliCompressSync(b).length,'B brotli')\"",
-    "bench:readme": "node --max-old-space-size=32768 benchmark/index.js --markdown > benchmark/results.md && node benchmark/update-readme.js",
+    "bench:readme": "node --max-old-space-size=32768 benchmark/index.js > benchmark/results.md && node benchmark/update-readme.js",
     "bench:browsers": "pnpm run build && node benchmark/browsers.js"
   },
   "devDependencies": {
@@ -53,7 +53,6 @@
     "@types/ramda": "^0.32.0",
     "@types/underscore": "^1.13.0",
     "array-sort": "^1.0.0",
-    "cli-table3": "^0.6.5",
     "es-toolkit": "^1.49.0",
     "esbuild": "^0.28.2",
     "fast-check": "^4.10.2",
@@ -61,7 +60,7 @@
     "just-sort-by": "^3.2.0",
     "lodash": "^4.18.1",
     "natural-orderby": "^5.0.0",
-    "playwright": "1.61.1",
+    "playwright": "1.64.0",
     "ramda": "^0.32.0",
     "remeda": "^2.51.0",
     "sort-array": "^5.0.0",
