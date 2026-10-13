@@ -16,7 +16,7 @@ const rand = () => {
 const words = ["Alpha", "beta", "Gamma", "delta", "Epsilon", "zeta", "Eta", "theta", "Iota", "kappa"];
 const makeRows = (n) =>
   Array.from({length: n}, (_, i) => ({
-    name: `${words[(rand() * words.length) | 0]} ${i % 97}`,
+    name: words[(rand() * words.length) | 0],
     unique: `${words[(rand() * words.length) | 0]}-${((rand() * 1e9) | 0).toString(36)}-${i}`,
     rank: rand() < 0.1 ? null : (rand() * 1e9) | 0,
     weight: rand(),
@@ -67,13 +67,24 @@ const median = (fn, reps) => {
   samples.sort((a, b) => a - b);
   return samples[3];
 };
+const permutation = (sorted, rows) => {
+  const at = new Map(rows.map((row, i) => [row, i]));
+  return sorted.map((x) => at.get(x)).join(",");
+};
 const results = [];
 for (const size of [1_000, 10_000]) {
   const rows = makeRows(size);
   const reps = Math.max(5, Math.round(300_000 / size));
   for (const c of cases) {
-    const entry = {size, name: c.name, libs: {}};
+    const entry = {size, name: c.name, libs: {}, different: []};
+    const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
     for (const [name, run] of Object.entries(libraries(rows, c))) {
+      if (permutation(run(), rows) !== reference) {
+        if (name === "fast-multisort") {
+          throw new Error(`fast-multisort returned a different order on ${size} rows, ${c.name}`);
+        }
+        entry.different.push(name);
+      }
       entry.libs[name] = median(run, reps);
     }
     results.push(entry);

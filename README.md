@@ -51,7 +51,15 @@ const nullsFirst = orderByColumns(rows, [
 ]);
 ```
 
-Specials of the same class keep their input order; different classes are ordered by class number (reversed when `specialsFirst`).
+Specials of the same class keep their input order; different classes are ordered by class number (reversed when `specialsFirst`). A column whose `keys` length differs from `items` throws a `RangeError`.
+
+### Contract
+
+- Iteratees are called with the item only, never an index, so `sortBy(strings, parseInt)` means what it says. Holes in a sparse input are read as `undefined`.
+- Empty rules return a copy in input order.
+- A custom `compare` is always honoured; a result that is not below or above zero (`NaN` included) is a tie and falls through to the next column.
+- Sorting is safe to start from inside an iteratee, `specialClass` or `compare`: every call owns its scratch memory.
+- Every path returns the same elements, once each, and the result never depends on which internal path ran.
 
 ## Semantics kept from lodash
 
@@ -65,11 +73,11 @@ Specials of the same class keep their input order; different classes are ordered
 | `sortBy(null)` | `[]` | not accepted: pass an array |
 | string path iteratee `"a.b"` | supported | not supported: pass a function |
 
-The test suite is a [fast-check](https://github.com/dubzzz/fast-check) oracle against lodash over numbers, strings, booleans, dates and a chaos pool mixing all of them with `NaN`, symbols and objects, across multi-key iteratees and directions.
+The test suite is a [fast-check](https://github.com/dubzzz/fast-check) oracle against lodash over numbers, strings, booleans, dates and a chaos pool mixing all of them with `NaN`, symbols and objects, across multi-key iteratees, directions and sizes on both sides of every internal threshold; a second oracle checks `orderByColumns` against a record-sort specification (lower-cased text, decimal strings under a custom comparator, nested nullable dates, nulls first or last per column) for permutation, order and stability; and a regression file pins every finding of an independent correctness audit, from lost rows after a sorted run to nested sorts from inside a comparator.
 
 ## Benchmarks
 
-Every competitor is run with its own multi-key API where it has one and checked against the lodash permutation first; `(different order)` marks results that differ (mostly where `null` lands). Numbers below are from `pnpm bench --markdown`, Apple M5 Max, Node 24. Ops/sec, higher is better; the last column is how many times slower than `fast-multisort`.
+Every competitor is run with its own multi-key API where it has one and checked against the lodash permutation first; `(different order)` marks results that differ (mostly where `null` lands), and the run aborts if `fast-multisort` itself differs. Numbers below are from `pnpm bench --markdown`, Apple M5 Max, Node 24. Ops/sec, higher is better; the last column is how many times slower than `fast-multisort`.
 
 <!-- bench:start -->
 
@@ -605,7 +613,7 @@ Times slower than `fast-multisort` across all cases below (min / median / max), 
 
 ### Browsers
 
-Same data, Chromium and WebKit via Playwright (`pnpm bench:browsers`), 1k and 10k rows, best competitor per case. Apple M5 Max.
+Same data, Chromium, WebKit and Firefox via Playwright (`pnpm bench:browsers`), 1k and 10k rows, each result checked against lodash before timing, best competitor per case. Apple M5 Max.
 
 #### Chromium 149.0.7827.55
 

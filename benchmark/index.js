@@ -28,7 +28,7 @@ const rand = () => {
 const words = ["Alpha", "beta", "Gamma", "delta", "Epsilon", "zeta", "Eta", "theta", "Iota", "kappa"];
 const makeRows = (n) =>
   Array.from({length: n}, (_, i) => ({
-    name: `${words[(rand() * words.length) | 0]} ${i % 97}`,
+    name: words[(rand() * words.length) | 0],
     unique: `${words[(rand() * words.length) | 0]}-${((rand() * 1e9) | 0).toString(36)}-${i}`,
     rank: rand() < 0.1 ? null : (rand() * 1e9) | 0,
     weight: rand(),
@@ -109,7 +109,10 @@ const libraries = (rows, c) => {
   return list;
 };
 
-const permutation = (sorted, rows) => sorted.map((x) => rows.indexOf(x)).join(",");
+const permutation = (sorted, rows) => {
+  const at = new Map(rows.map((row, i) => [row, i]));
+  return sorted.map((x) => at.get(x)).join(",");
+};
 
 const sizesArg = [...args].find((a) => a.startsWith("--sizes="));
 const sizes = sizesArg ? sizesArg.slice(8).split(",").map(Number) : quick ? [10_000] : [100, 1_000, 10_000, 100_000];
@@ -130,6 +133,9 @@ for (const size of sizes) {
         }
       } catch (error) {
         status = ` (threw: ${error.message})`;
+      }
+      if (name === "fast-multisort" && status !== "") {
+        throw new Error(`${name}${status} on ${size} rows, ${c.name}`);
       }
       bench.add(`${name}${status}`, run);
     }
