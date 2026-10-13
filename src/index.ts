@@ -1009,11 +1009,57 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
 const toGetter = <T>(iteratee: SortIteratee<T>) =>
   typeof iteratee === "function" ? iteratee : (item: T) => item[iteratee];
 
+const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean): T[] | null => {
+  const n = items.length;
+  let prev = get(items[0]);
+  const kind = typeof prev;
+  if ((kind !== "number" && kind !== "string") || Number.isNaN(prev)) {
+    return null;
+  }
+  let nonDecreasing = true;
+  let nonIncreasing = true;
+  let strict = true;
+  for (let i = 1; i < n; i++) {
+    const next = get(items[i]);
+    if (typeof next !== kind || Number.isNaN(next)) {
+      return null;
+    }
+    if ((prev as number) > (next as number)) {
+      nonDecreasing = false;
+    } else if ((prev as number) < (next as number)) {
+      nonIncreasing = false;
+    } else {
+      strict = false;
+    }
+    if (!nonDecreasing && !nonIncreasing) {
+      return null;
+    }
+    prev = next;
+  }
+  if (desc ? nonIncreasing : nonDecreasing) {
+    return items.slice();
+  }
+  if (strict) {
+    const result = new Array<T>(n);
+    for (let i = 0; i < n; i++) {
+      result[i] = items[n - 1 - i];
+    }
+    return result;
+  }
+  return null;
+};
+
 export const orderBy = <T>(
   items: readonly T[],
   iteratees: readonly SortIteratee<T>[],
   orders: readonly SortOrder[] = []
 ): T[] => {
+  if (iteratees.length === 1 && items.length > 1) {
+    const ordered = orderedByGetter(items, toGetter(iteratees[0]), orders[0] === "desc");
+    if (ordered !== null) {
+      return ordered;
+    }
+  }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   return orderByColumns(
     items,
