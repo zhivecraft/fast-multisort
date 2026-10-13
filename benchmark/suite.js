@@ -53,17 +53,6 @@ export const cases = [
 ];
 
 export const sizes = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000];
-const bigCases = new Set(["string key, 10 distinct values", "three keys, mixed directions", "integer key, 10% null"]);
-const hugeLibraries = new Set([
-  "fast-multisort",
-  "inline comparator chain, slice().sort()",
-  "inline comparator chain, toSorted()",
-  "lodash.orderBy",
-  "es-toolkit.orderBy",
-  "remeda.sortBy",
-  "fast-sort",
-  "thenby",
-]);
 
 const compareNullsLast = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a < b ? -1 : 1);
 const nativeDecorated = (items, props, orders) =>
@@ -122,15 +111,9 @@ export const run = async (onCase = () => {}, only = sizes) => {
   for (const size of only) {
     const rows = makeRows(size);
     for (const c of cases) {
-      if (size >= 100_000 && !bigCases.has(c.name)) {
-        continue;
-      }
       const bench = new Bench({time: 500, warmupTime: 100});
       const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
       for (const [name, fn] of Object.entries(libraries(rows, c))) {
-        if (size >= 1_000_000 && !hugeLibraries.has(name)) {
-          continue;
-        }
         let status = "";
         try {
           if (permutation(fn(), rows) !== reference) {
