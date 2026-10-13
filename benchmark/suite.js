@@ -20,7 +20,7 @@ const rand = () => {
   return seed / 2 ** 32;
 };
 const words = ["Alpha", "beta", "Gamma", "delta", "Epsilon", "zeta", "Eta", "theta", "Iota", "kappa"];
-const makeRows = (n) =>
+export const makeRows = (n) =>
   Array.from({length: n}, (_, i) => ({
     name: words[(rand() * words.length) | 0],
     unique: `${words[(rand() * words.length) | 0]}-${((rand() * 1e9) | 0).toString(36)}-${i}`,
@@ -69,7 +69,7 @@ const nativeDecorated = (items, props, orders) =>
     })
     .map((x) => x.item);
 
-const libraries = (rows, c) => {
+export const libraries = (rows, c) => {
   const keys = c.props.map(keyOf);
   const signed = c.props.map((p, i) => (c.orders[i] === "desc" ? `-${p}` : p));
   const list = {
