@@ -605,7 +605,7 @@ Times slower than `fast-multisort` across all cases below (min / median / max), 
 
 Run `pnpm bench` (or `pnpm bench --quick` for 10k rows only) to reproduce.
 
-The honest footnote: at a hundred rows a sort takes a few microseconds and the margins are small, and on inputs that are already in order every library is linear, so the lead there is a pass-through against a native sort. Elsewhere, from a thousand rows up, nothing in the table comes within 2×. The table is the only argument, and the script above regenerates it from scratch.
+The honest footnote: at a hundred rows a sort takes a few microseconds and the margins are small, and on inputs that are already in order every library is linear, so the lead there is a pass-through against a native sort. From a thousand rows up the closest anyone gets is about 1.9×. The table is the only argument, and the script above regenerates it from scratch.
 
 ## How
 
