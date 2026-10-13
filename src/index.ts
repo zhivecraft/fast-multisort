@@ -761,59 +761,79 @@ const sampleHasDuplicates = (keys: unknown[], comparable: number[]) => {
   return false;
 };
 
-const tinyPositions = new Int32Array(WINDOW);
-const tinyHi = new Float64Array(TINY);
-const tinyLo = new Float64Array(TINY);
+const tinyCounts = new Int32Array(258);
 
-const packedStringOrder = (keys: unknown[], comparable: number[], desc: boolean): boolean => {
+const tinyBucketStrings = (keys: unknown[], comparable: number[], desc: boolean, ordered: number[]): boolean => {
   const m = comparable.length;
   const first = keys[comparable[0]] as string;
-  let found = 0;
-  for (let p = 0; p < WINDOW_SCAN && found < WINDOW; p++) {
+  let p = 0;
+  for (; p < WINDOW_SCAN; p++) {
     const code = codeAt(first, p);
+    let varies = false;
     for (let t = 1; t < m; t++) {
       if (codeAt(keys[comparable[t]] as string, p) !== code) {
-        tinyPositions[found++] = p;
+        varies = true;
         break;
       }
     }
+    if (varies) {
+      break;
+    }
   }
-  if (found === 0) {
-    return true;
+  if (p === WINDOW_SCAN) {
+    return false;
   }
-  for (let q = found; q < WINDOW; q++) {
-    tinyPositions[q] = -1;
-  }
+  const codes = new Int32Array(m);
+  const counts = tinyCounts;
+  counts.fill(0);
   for (let t = 0; t < m; t++) {
-    const key = keys[comparable[t]] as string;
-    const h = packWindow(key, tinyPositions, 0, 4);
-    const l = packWindow(key, tinyPositions, 4, WINDOW);
-    if (h < 0 || l < 0) {
+    const code = codeAt(keys[comparable[t]] as string, p);
+    if (code > 256) {
       return false;
     }
-    tinyHi[t] = h;
-    tinyLo[t] = l;
+    codes[t] = code;
+    counts[code + 1]++;
   }
-  const slot = new Int32Array(keys.length);
+  for (let d = 0; d < 257; d++) {
+    counts[d + 1] += counts[d];
+  }
+  const order = new Array<number>(m);
   for (let t = 0; t < m; t++) {
-    slot[comparable[t]] = t;
+    order[counts[codes[t]]++] = t;
   }
-  const sign = desc ? -1 : 1;
-  comparable.sort((a, b) => {
-    const x = slot[a];
-    const y = slot[b];
-    const byHi = tinyHi[x] - tinyHi[y];
-    if (byHi !== 0) {
-      return sign * byHi;
+  const compare = desc
+    ? (a: number, b: number) => {
+        const x = keys[comparable[a]] as string;
+        const y = keys[comparable[b]] as string;
+        return x < y ? 1 : x > y ? -1 : 0;
+      }
+    : (a: number, b: number) => {
+        const x = keys[comparable[a]] as string;
+        const y = keys[comparable[b]] as string;
+        return x < y ? -1 : x > y ? 1 : 0;
+      };
+  let write = desc ? m : 0;
+  let start = 0;
+  for (let t = 1; t <= m; t++) {
+    if (t === m || codes[order[t]] !== codes[order[start]]) {
+      const size = t - start;
+      if (desc) {
+        write -= size;
+      }
+      if (size === 1) {
+        ordered[write] = comparable[order[start]];
+      } else {
+        const run = order.slice(start, t).sort(compare);
+        for (let q = 0; q < size; q++) {
+          ordered[write + q] = comparable[run[q]];
+        }
+      }
+      if (!desc) {
+        write += size;
+      }
+      start = t;
     }
-    const byLo = tinyLo[x] - tinyLo[y];
-    if (byLo !== 0) {
-      return sign * byLo;
-    }
-    const kx = keys[a] as string;
-    const ky = keys[b] as string;
-    return kx === ky ? 0 : (kx < ky) === desc ? 1 : -1;
-  });
+  }
   return true;
 };
 
@@ -879,7 +899,9 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
       ordered[counts[ranks[t]]++] = comparable[t];
     }
   } else if (kind === "string") {
-    if (!packedStringOrder(keys, comparable, desc)) {
+    ordered = new Array<number>(m);
+    if (!tinyBucketStrings(keys, comparable, desc, ordered)) {
+      ordered = comparable;
       comparable.sort(
         desc
           ? (a, b) => {
@@ -987,53 +1009,11 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
 const toGetter = <T>(iteratee: SortIteratee<T>) =>
   typeof iteratee === "function" ? iteratee : (item: T) => item[iteratee];
 
-const SHORT_STRING = 12;
-
-const tinyShortStringSort = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean): T[] | null => {
-  const n = items.length;
-  const sample = Math.min(SAMPLE, n);
-  for (let i = 0; i < sample; i++) {
-    const key = get(items[i]);
-    if (typeof key !== "string" || key.length > SHORT_STRING) {
-      return null;
-    }
-    for (let j = 0; j < i; j++) {
-      if (get(items[j]) === key) {
-        return null;
-      }
-    }
-  }
-  for (let i = sample; i < n; i++) {
-    if (typeof get(items[i]) !== "string") {
-      return null;
-    }
-  }
-  return items.slice().sort(
-    desc
-      ? (p, q) => {
-          const x = get(p) as string;
-          const y = get(q) as string;
-          return x < y ? 1 : x > y ? -1 : 0;
-        }
-      : (p, q) => {
-          const x = get(p) as string;
-          const y = get(q) as string;
-          return x < y ? -1 : x > y ? 1 : 0;
-        }
-  );
-};
-
 export const orderBy = <T>(
   items: readonly T[],
   iteratees: readonly SortIteratee<T>[],
   orders: readonly SortOrder[] = []
 ): T[] => {
-  if (iteratees.length === 1 && items.length <= TINY && items.length > 1) {
-    const tiny = tinyShortStringSort(items, toGetter(iteratees[0]), orders[0] === "desc");
-    if (tiny !== null) {
-      return tiny;
-    }
-  }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   return orderByColumns(
     items,

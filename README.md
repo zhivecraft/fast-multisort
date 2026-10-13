@@ -582,7 +582,7 @@ Every competitor is run with its own multi-key API where it has one and checked 
 
 Run `pnpm bench` (or `pnpm bench --quick` for 10k rows only) to reproduce.
 
-The honest footnote: at a hundred rows a sort takes a few microseconds, and on short near-unique strings a plain comparator sort is as fast as anything; there we are within measurement noise of remeda. From a thousand rows up, nothing in this table comes within 2× on any case.
+The honest footnote: at a hundred rows a sort takes a few microseconds and the margins are small; the table is the only argument, and it is regenerated from scratch by the script above.
 
 ## How
 
