@@ -111,7 +111,7 @@ export const run = async (onCase = () => {}, only = sizes) => {
   for (const size of only) {
     const rows = makeRows(size);
     for (const c of cases) {
-      const bench = new Bench({time: 500, warmupTime: 100});
+      const bench = new Bench({time: 500, warmupTime: 100, iterations: 1, warmupIterations: 1});
       const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
       for (const [name, fn] of Object.entries(libraries(rows, c))) {
         let status = "";
