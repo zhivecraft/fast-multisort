@@ -51,7 +51,8 @@ const libraries = (rows, c) => {
   const keys = c.props.map(keyOf);
   return {
     "fast-multisort": () => orderBy(rows, keys, c.orders),
-    "inline comparator chain": () => rows.slice().sort(inlineChains[c.name]),
+    "inline comparator chain, slice().sort()": () => rows.slice().sort(inlineChains[c.name]),
+    "inline comparator chain, toSorted()": () => rows.toSorted(inlineChains[c.name]),
     "lodash.orderBy": () => lodashOrderBy(rows, keys, c.orders),
     "es-toolkit.orderBy": () => esToolkitOrderBy(rows, keys, c.orders),
     "remeda.sortBy": () => remedaSortBy(rows, ...keys.map((key, i) => [key, c.orders[i]])),

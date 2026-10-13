@@ -98,7 +98,8 @@ const libraries = (rows, c) => {
   const signed = c.props.map((p, i) => (c.orders[i] === "desc" ? `-${p}` : p));
   const list = {
     "fast-multisort": () => orderBy(rows, keys, c.orders),
-    "inline comparator chain": () => rows.slice().sort(inlineChains[c.name]),
+    "inline comparator chain, slice().sort()": () => rows.slice().sort(inlineChains[c.name]),
+    "inline comparator chain, toSorted()": () => rows.toSorted(inlineChains[c.name]),
     "lodash.orderBy": () => lodashOrderBy(rows, keys, c.orders),
     "es-toolkit.orderBy": () => esToolkitOrderBy(rows, keys, c.orders),
     "remeda.sortBy": () => remedaSortBy(rows, ...keys.map((key, i) => [key, c.orders[i]])),
@@ -138,7 +139,8 @@ const sizes = sizesArg
 const bigCases = new Set(["string key, 10 distinct values", "three keys, mixed directions", "integer key, 10% null"]);
 const hugeLibraries = new Set([
   "fast-multisort",
-  "inline comparator chain",
+  "inline comparator chain, slice().sort()",
+  "inline comparator chain, toSorted()",
   "lodash.orderBy",
   "es-toolkit.orderBy",
   "remeda.sortBy",

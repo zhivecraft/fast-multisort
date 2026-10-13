@@ -77,7 +77,7 @@ The test suite is a [fast-check](https://github.com/dubzzz/fast-check) oracle ag
 
 ## Benchmarks
 
-Every competitor is run with its own multi-key API where it has one and checked against the lodash permutation first; `(different order)` marks results that differ (mostly where `null` lands), and the run aborts if `fast-multisort` itself differs. `inline comparator chain` is the hand-written baseline, `rows.slice().sort((a, b) => str(a.name, b.name) || rankDesc(a.rank, b.rank) || str(a.created, b.created))`, relying on the native sort's stability. Sizes run from 1 row to 10 million; from 100k rows up only three cases run, and from 1M rows up only the libraries within an order of magnitude of the baseline. Numbers below are from `pnpm bench --markdown`, Apple M5 Max, Node 24. Ops/sec, higher is better; the last column is how many times slower than `fast-multisort`.
+Every competitor is run with its own multi-key API where it has one and checked against the lodash permutation first; `(different order)` marks results that differ (mostly where `null` lands), and the run aborts if `fast-multisort` itself differs. `inline comparator chain` is the hand-written baseline, `(a, b) => str(a.name, b.name) || rankDesc(a.rank, b.rank) || str(a.created, b.created)` passed to `rows.slice().sort()` and to `rows.toSorted()`, relying on the native sort's stability. Sizes run from 1 row to 10 million; from 100k rows up only three cases run, and from 1M rows up only the libraries within an order of magnitude of the baseline. Numbers below are from `pnpm bench --markdown`, Apple M5 Max, Node 24. Ops/sec, higher is better; the last column is how many times slower than `fast-multisort`.
 
 <!-- bench:start -->
 
