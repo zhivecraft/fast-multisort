@@ -969,6 +969,46 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
   return result;
 };
 
+const tinyMulti = <T>(items: readonly T[], columns: SortColumn[]): T[] | null => {
+  const first = columns[0];
+  const {keys, desc, specialClass} = first;
+  if (first.compare !== undefined) {
+    return null;
+  }
+  const n = keys.length;
+  for (let i = 0; i < n; i++) {
+    const key = keys[i];
+    if (typeof key !== "string" || specialClass(key) !== 0) {
+      return null;
+    }
+  }
+  const comparable = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    comparable[i] = i;
+  }
+  const ordered = new Array<number>(n);
+  if (!tinyBucketStrings(keys, comparable, desc, ordered)) {
+    return null;
+  }
+  const chain = comparatorFrom(columns, 1);
+  const result = new Array<T>(n);
+  let start = 0;
+  for (let t = 1; t <= n; t++) {
+    if (t === n || keys[ordered[t]] !== keys[ordered[start]]) {
+      if (t - start === 1) {
+        result[start] = items[ordered[start]];
+      } else {
+        const run = ordered.slice(start, t).sort(chain);
+        for (let q = 0; q < run.length; q++) {
+          result[start + q] = items[run[q]];
+        }
+      }
+      start = t;
+    }
+  }
+  return result;
+};
+
 export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T[] => {
   const n = items.length;
   if (n < 2) {
@@ -991,6 +1031,10 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
     indices[i] = i;
   }
   if (n <= TINY) {
+    const multi = tinyMulti(items, columns);
+    if (multi !== null) {
+      return multi;
+    }
     return indices.sort(tinyComparator(columns)).map((i) => items[i]);
   }
   if (!columns.every(isFastColumn)) {
@@ -1009,32 +1053,36 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
 const toGetter = <T>(iteratee: SortIteratee<T>) =>
   typeof iteratee === "function" ? iteratee : (item: T) => item[iteratee];
 
-const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean): T[] | null => {
+const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean, keys: unknown[]): T[] | null => {
   const n = items.length;
   let prev = get(items[0]);
+  keys[0] = prev;
   const kind = typeof prev;
-  if ((kind !== "number" && kind !== "string") || Number.isNaN(prev)) {
-    return null;
-  }
+  let plain = (kind === "number" || kind === "string") && !Number.isNaN(prev);
   let nonDecreasing = true;
   let nonIncreasing = true;
   let strict = true;
   for (let i = 1; i < n; i++) {
     const next = get(items[i]);
-    if (typeof next !== kind || Number.isNaN(next)) {
-      return null;
-    }
-    if ((prev as number) > (next as number)) {
-      nonDecreasing = false;
-    } else if ((prev as number) < (next as number)) {
-      nonIncreasing = false;
-    } else {
-      strict = false;
-    }
-    if (!nonDecreasing && !nonIncreasing) {
-      return null;
+    keys[i] = next;
+    if (plain) {
+      if (typeof next !== kind || Number.isNaN(next)) {
+        plain = false;
+      } else if ((prev as number) > (next as number)) {
+        nonDecreasing = false;
+      } else if ((prev as number) < (next as number)) {
+        nonIncreasing = false;
+      } else {
+        strict = false;
+      }
+      if (!nonDecreasing && !nonIncreasing) {
+        plain = false;
+      }
     }
     prev = next;
+  }
+  if (!plain) {
+    return null;
   }
   if (desc ? nonIncreasing : nonDecreasing) {
     return items.slice();
@@ -1055,10 +1103,13 @@ export const orderBy = <T>(
   orders: readonly SortOrder[] = []
 ): T[] => {
   if (iteratees.length === 1 && items.length > 1) {
-    const ordered = orderedByGetter(items, toGetter(iteratees[0]), orders[0] === "desc");
+    const desc = orders[0] === "desc";
+    const keys = new Array<unknown>(items.length);
+    const ordered = orderedByGetter(items, toGetter(iteratees[0]), desc, keys);
     if (ordered !== null) {
       return ordered;
     }
+    return orderByColumns(items, [{keys, desc, specialClass: lodashSpecialClass, specialsFirst: desc}]);
   }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   return orderByColumns(

@@ -44,5 +44,13 @@ const summary = [
 ].join("\n");
 
 const body = results.split("\n").filter((line) => line.startsWith("#### ") || line.startsWith("|") || line === "").join("\n").trim();
-fs.writeFileSync("README.md", `${readme.slice(0, a + start.length)}\n\n${summary}\n\n<details>\n<summary>Per case</summary>\n\n${body}\n\n</details>\n\n${readme.slice(b)}`);
+let next = `${readme.slice(0, a + start.length)}\n\n${summary}\n\n<details>\n<summary>Per case</summary>\n\n${body}\n\n</details>\n\n${readme.slice(b)}`;
+if (fs.existsSync("benchmark/browsers.md")) {
+  const bStart = next.indexOf("#### Chromium");
+  const bEnd = next.indexOf("\nRun `pnpm bench`");
+  if (bStart > 0 && bEnd > bStart) {
+    next = `${next.slice(0, bStart)}${fs.readFileSync("benchmark/browsers.md", "utf8").trim()}\n${next.slice(bEnd)}`;
+  }
+}
+fs.writeFileSync("README.md", next);
 console.log("README benchmark tables updated");
