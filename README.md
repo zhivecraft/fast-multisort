@@ -73,6 +73,27 @@ Every competitor is run with its own multi-key API where it has one and checked 
 
 <!-- bench:start -->
 
+Times slower than `fast-multisort` across all cases below (min / median / max), and in how many cases the result order differs from lodash.
+
+| library | min | median | max | cases | order differs |
+|---|---:|---:|---:|---:|---:|
+| underscore.sortBy | 1.30× | 2.16× | 8.05× | 23 | 4 |
+| thenby | 1.14× | 2.39× | 9.14× | 27 | 7 |
+| remeda.sortBy | 1.09× | 2.50× | 11.23× | 27 | 7 |
+| fast-sort | 1.12× | 2.57× | 9.84× | 27 | 3 |
+| es-toolkit.orderBy | 1.29× | 2.61× | 9.99× | 27 | 0 |
+| Array.prototype.sort, decorated | 1.26× | 2.64× | 10.69× | 27 | 0 |
+| lodash.orderBy | 1.27× | 2.90× | 11.47× | 27 | 0 |
+| ramda.sortWith | 2.06× | 3.98× | 15.80× | 27 | 7 |
+| just-sort-by | 1.24× | 4.08× | 22.21× | 23 | 11 |
+| sort-array | 1.73× | 4.37× | 17.43× | 27 | 3 |
+| natural-orderby | 6.29× | 20.30× | 37.85× | 27 | 11 |
+| sort-on | 12.68× | 25.68× | 92.86× | 27 | 11 |
+| sort-by | 85.35× | 175.04× | 705.87× | 27 | 7 |
+
+<details>
+<summary>Per case</summary>
+
 #### 100 rows, string key, 10 distinct values
 
 | library | ops/sec | mean ms | vs fast-multisort |
@@ -577,6 +598,8 @@ Every competitor is run with its own multi-key API where it has one and checked 
 | natural-orderby (different order) | 4 | 280.447 | 25.15× |
 | sort-on (different order) | 2 | 472.404 | 42.35× |
 | sort-by (different order) | 0 | 3426.794 | 307.64× |
+
+</details>
 
 <!-- bench:end -->
 
