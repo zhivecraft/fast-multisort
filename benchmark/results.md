@@ -3,505 +3,505 @@
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| remeda.sortBy | 198459 | 0.005 | 0.82× |
-| fast-sort | 189088 | 0.005 | 0.86× |
-| thenby | 187954 | 0.005 | 0.87× |
-| Array.prototype.sort, decorated | 168251 | 0.006 | 0.97× |
-| fast-multisort | 162925 | 0.006 | 1.00× |
-| es-toolkit.orderBy | 162106 | 0.006 | 1.01× |
-| underscore.sortBy | 152957 | 0.007 | 1.07× |
-| sort-array | 123977 | 0.008 | 1.31× |
-| lodash.orderBy | 116535 | 0.009 | 1.40× |
-| ramda.sortWith | 70073 | 0.014 | 2.33× |
-| just-sort-by (different order) | 43509 | 0.023 | 3.74× |
-| natural-orderby (different order) | 12215 | 0.082 | 13.34× |
-| sort-on (different order) | 9061 | 0.111 | 17.98× |
-| sort-by | 1219 | 0.822 | 133.61× |
+| remeda.sortBy | 193725 | 0.005 | 0.96× |
+| fast-sort | 185340 | 0.005 | 1.00× |
+| fast-multisort | 185127 | 0.005 | 1.00× |
+| thenby | 181488 | 0.006 | 1.02× |
+| Array.prototype.sort, decorated | 165034 | 0.006 | 1.12× |
+| es-toolkit.orderBy | 164531 | 0.006 | 1.13× |
+| underscore.sortBy | 155818 | 0.006 | 1.19× |
+| sort-array | 121487 | 0.008 | 1.52× |
+| lodash.orderBy | 117136 | 0.009 | 1.58× |
+| ramda.sortWith | 71033 | 0.014 | 2.61× |
+| just-sort-by (different order) | 42171 | 0.024 | 4.39× |
+| natural-orderby (different order) | 12025 | 0.083 | 15.39× |
+| sort-on (different order) | 9028 | 0.111 | 20.51× |
+| sort-by | 1231 | 0.813 | 150.36× |
 
 #### 100 rows, string key, all unique
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 143173 | 0.007 | 1.00× |
-| underscore.sortBy | 122516 | 0.008 | 1.17× |
-| fast-sort | 97063 | 0.010 | 1.48× |
-| thenby | 94908 | 0.011 | 1.51× |
-| lodash.orderBy | 94188 | 0.011 | 1.52× |
-| remeda.sortBy | 93132 | 0.011 | 1.54× |
-| es-toolkit.orderBy | 86963 | 0.012 | 1.65× |
-| Array.prototype.sort, decorated | 84960 | 0.012 | 1.69× |
-| ramda.sortWith | 52861 | 0.019 | 2.71× |
-| sort-array | 50956 | 0.020 | 2.81× |
-| just-sort-by (different order) | 33724 | 0.030 | 4.25× |
-| natural-orderby (different order) | 8896 | 0.116 | 16.09× |
-| sort-on (different order) | 7913 | 0.127 | 18.09× |
-| sort-by | 1104 | 0.913 | 129.67× |
+| fast-multisort | 140522 | 0.007 | 1.00× |
+| underscore.sortBy | 121397 | 0.008 | 1.16× |
+| thenby | 96132 | 0.011 | 1.46× |
+| remeda.sortBy | 95615 | 0.011 | 1.47× |
+| fast-sort | 94553 | 0.011 | 1.49× |
+| lodash.orderBy | 92909 | 0.011 | 1.51× |
+| Array.prototype.sort, decorated | 88375 | 0.011 | 1.59× |
+| es-toolkit.orderBy | 87516 | 0.012 | 1.61× |
+| ramda.sortWith | 52277 | 0.019 | 2.69× |
+| sort-array | 51375 | 0.020 | 2.74× |
+| just-sort-by (different order) | 32463 | 0.031 | 4.33× |
+| natural-orderby (different order) | 9517 | 0.106 | 14.76× |
+| sort-on (different order) | 7767 | 0.129 | 18.09× |
+| sort-by | 1162 | 0.861 | 120.89× |
 
 #### 100 rows, integer key, 10% null
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 171329 | 0.006 | 1.00× |
-| underscore.sortBy (different order) | 162824 | 0.006 | 1.05× |
-| just-sort-by (different order) | 110915 | 0.009 | 1.54× |
-| lodash.orderBy | 110486 | 0.009 | 1.55× |
-| remeda.sortBy (different order) | 109781 | 0.009 | 1.56× |
-| thenby (different order) | 108147 | 0.009 | 1.58× |
-| fast-sort | 105809 | 0.010 | 1.62× |
-| es-toolkit.orderBy | 101145 | 0.010 | 1.69× |
-| Array.prototype.sort, decorated | 98446 | 0.010 | 1.74× |
-| ramda.sortWith (different order) | 58965 | 0.017 | 2.91× |
-| sort-array | 58577 | 0.017 | 2.92× |
-| natural-orderby | 25884 | 0.043 | 6.62× |
-| sort-on | 10035 | 0.100 | 17.07× |
-| sort-by (different order) | 1199 | 0.836 | 142.88× |
+| fast-multisort | 245835 | 0.004 | 1.00× |
+| underscore.sortBy (different order) | 163754 | 0.006 | 1.50× |
+| just-sort-by (different order) | 113143 | 0.009 | 2.17× |
+| thenby (different order) | 109094 | 0.009 | 2.25× |
+| remeda.sortBy (different order) | 109084 | 0.009 | 2.25× |
+| lodash.orderBy | 108793 | 0.009 | 2.26× |
+| fast-sort | 108266 | 0.009 | 2.27× |
+| es-toolkit.orderBy | 101015 | 0.010 | 2.43× |
+| Array.prototype.sort, decorated | 99673 | 0.010 | 2.47× |
+| sort-array | 59040 | 0.017 | 4.16× |
+| ramda.sortWith (different order) | 58826 | 0.017 | 4.18× |
+| natural-orderby | 27806 | 0.036 | 8.84× |
+| sort-on | 9940 | 0.101 | 24.73× |
+| sort-by (different order) | 1207 | 0.829 | 203.65× |
 
 #### 100 rows, float key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 153639 | 0.007 | 1.00× |
-| underscore.sortBy | 152645 | 0.007 | 1.01× |
-| remeda.sortBy | 103749 | 0.010 | 1.48× |
-| thenby | 100196 | 0.010 | 1.53× |
-| just-sort-by | 97499 | 0.010 | 1.58× |
-| lodash.orderBy | 97128 | 0.010 | 1.58× |
-| fast-sort | 94479 | 0.011 | 1.63× |
-| es-toolkit.orderBy | 92998 | 0.011 | 1.65× |
-| Array.prototype.sort, decorated | 87211 | 0.012 | 1.76× |
-| ramda.sortWith | 55490 | 0.018 | 2.77× |
-| sort-array | 53298 | 0.019 | 2.88× |
-| natural-orderby | 22906 | 0.044 | 6.71× |
-| sort-on | 8634 | 0.116 | 17.79× |
-| sort-by | 1138 | 0.880 | 135.01× |
+| fast-multisort | 187297 | 0.005 | 1.00× |
+| underscore.sortBy | 146908 | 0.007 | 1.27× |
+| just-sort-by | 99158 | 0.010 | 1.89× |
+| remeda.sortBy | 96815 | 0.010 | 1.93× |
+| thenby | 96149 | 0.010 | 1.95× |
+| lodash.orderBy | 95339 | 0.011 | 1.96× |
+| es-toolkit.orderBy | 90550 | 0.011 | 2.07× |
+| fast-sort | 90396 | 0.011 | 2.07× |
+| Array.prototype.sort, decorated | 85935 | 0.012 | 2.18× |
+| ramda.sortWith | 55727 | 0.018 | 3.36× |
+| sort-array | 51902 | 0.019 | 3.61× |
+| natural-orderby | 22942 | 0.044 | 8.16× |
+| sort-on | 8498 | 0.118 | 22.04× |
+| sort-by | 1133 | 0.884 | 165.29× |
 
 #### 100 rows, ISO date string key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 123087 | 0.008 | 1.00× |
-| underscore.sortBy | 98567 | 0.010 | 1.25× |
-| remeda.sortBy | 90955 | 0.011 | 1.35× |
-| thenby | 90861 | 0.011 | 1.35× |
-| es-toolkit.orderBy | 83833 | 0.012 | 1.47× |
-| fast-sort | 79757 | 0.013 | 1.54× |
-| Array.prototype.sort, decorated | 76635 | 0.013 | 1.61× |
-| lodash.orderBy | 76543 | 0.013 | 1.61× |
-| just-sort-by | 53311 | 0.019 | 2.31× |
-| ramda.sortWith | 49388 | 0.020 | 2.49× |
-| sort-array | 46887 | 0.021 | 2.63× |
-| natural-orderby | 16259 | 0.062 | 7.57× |
-| sort-on | 7352 | 0.136 | 16.74× |
-| sort-by | 1154 | 0.868 | 106.71× |
+| fast-multisort | 131361 | 0.008 | 1.00× |
+| underscore.sortBy | 99433 | 0.010 | 1.32× |
+| thenby | 88852 | 0.011 | 1.48× |
+| remeda.sortBy | 85856 | 0.012 | 1.53× |
+| es-toolkit.orderBy | 82069 | 0.012 | 1.60× |
+| fast-sort | 79562 | 0.013 | 1.65× |
+| Array.prototype.sort, decorated | 77905 | 0.013 | 1.69× |
+| lodash.orderBy | 77185 | 0.013 | 1.70× |
+| just-sort-by | 54273 | 0.019 | 2.42× |
+| ramda.sortWith | 50963 | 0.020 | 2.58× |
+| sort-array | 46204 | 0.022 | 2.84× |
+| natural-orderby | 16285 | 0.062 | 8.07× |
+| sort-on | 7297 | 0.138 | 18.00× |
+| sort-by | 1137 | 0.881 | 115.51× |
 
 #### 100 rows, already sorted integer key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 955382 | 0.001 | 1.00× |
-| just-sort-by | 799847 | 0.001 | 1.19× |
-| thenby | 696957 | 0.001 | 1.37× |
-| remeda.sortBy | 665933 | 0.002 | 1.43× |
-| es-toolkit.orderBy | 622225 | 0.002 | 1.54× |
-| fast-sort | 616746 | 0.002 | 1.55× |
-| Array.prototype.sort, decorated | 553476 | 0.002 | 1.73× |
-| underscore.sortBy | 477594 | 0.002 | 2.00× |
-| lodash.orderBy | 380018 | 0.003 | 2.51× |
-| ramda.sortWith | 358687 | 0.003 | 2.66× |
-| sort-array | 353761 | 0.003 | 2.70× |
-| sort-on | 48311 | 0.021 | 19.78× |
-| natural-orderby | 32579 | 0.031 | 29.32× |
-| sort-by | 6261 | 0.160 | 152.58× |
+| fast-multisort | 983863 | 0.001 | 1.00× |
+| just-sort-by | 766056 | 0.001 | 1.28× |
+| thenby | 703829 | 0.001 | 1.40× |
+| remeda.sortBy | 684916 | 0.001 | 1.44× |
+| fast-sort | 625717 | 0.002 | 1.57× |
+| es-toolkit.orderBy | 621127 | 0.002 | 1.58× |
+| Array.prototype.sort, decorated | 558612 | 0.002 | 1.76× |
+| underscore.sortBy | 477371 | 0.002 | 2.06× |
+| lodash.orderBy | 378418 | 0.003 | 2.60× |
+| ramda.sortWith | 363687 | 0.003 | 2.71× |
+| sort-array | 352374 | 0.003 | 2.79× |
+| sort-on | 47727 | 0.021 | 20.61× |
+| natural-orderby | 33859 | 0.030 | 29.06× |
+| sort-by | 6195 | 0.162 | 158.81× |
 
 #### 100 rows, reverse sorted integer key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 1060799 | 0.001 | 1.00× |
-| just-sort-by | 765513 | 0.001 | 1.39× |
-| thenby | 729514 | 0.001 | 1.45× |
-| fast-sort | 645800 | 0.002 | 1.64× |
-| es-toolkit.orderBy | 642309 | 0.002 | 1.65× |
-| remeda.sortBy | 642290 | 0.002 | 1.65× |
-| Array.prototype.sort, decorated | 551322 | 0.002 | 1.92× |
-| underscore.sortBy | 450285 | 0.002 | 2.36× |
-| ramda.sortWith | 365794 | 0.003 | 2.90× |
-| sort-array | 363533 | 0.003 | 2.92× |
-| lodash.orderBy | 350284 | 0.003 | 3.03× |
-| sort-on | 43480 | 0.023 | 24.40× |
-| natural-orderby | 34389 | 0.029 | 30.85× |
-| sort-by | 6074 | 0.165 | 174.64× |
+| fast-multisort | 1049552 | 0.001 | 1.00× |
+| just-sort-by | 769324 | 0.001 | 1.36× |
+| thenby | 718076 | 0.001 | 1.46× |
+| fast-sort | 660308 | 0.002 | 1.59× |
+| es-toolkit.orderBy | 645743 | 0.002 | 1.63× |
+| remeda.sortBy | 623104 | 0.002 | 1.68× |
+| Array.prototype.sort, decorated | 541606 | 0.002 | 1.94× |
+| underscore.sortBy | 444304 | 0.002 | 2.36× |
+| ramda.sortWith | 366444 | 0.003 | 2.86× |
+| sort-array | 361417 | 0.003 | 2.90× |
+| lodash.orderBy | 350910 | 0.003 | 2.99× |
+| sort-on | 42888 | 0.024 | 24.47× |
+| natural-orderby | 34366 | 0.029 | 30.54× |
+| sort-by | 6038 | 0.166 | 173.82× |
 
 #### 100 rows, three keys, mixed directions
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 98038 | 0.010 | 1.00× |
-| remeda.sortBy | 90748 | 0.011 | 1.08× |
-| es-toolkit.orderBy | 82465 | 0.012 | 1.19× |
-| lodash.orderBy | 79720 | 0.013 | 1.23× |
-| Array.prototype.sort, decorated | 78066 | 0.013 | 1.26× |
-| thenby | 66585 | 0.015 | 1.47× |
-| fast-sort | 63178 | 0.016 | 1.55× |
-| ramda.sortWith | 51081 | 0.020 | 1.92× |
-| sort-array | 46539 | 0.022 | 2.11× |
-| sort-on (different order) | 8469 | 0.119 | 11.58× |
-| natural-orderby (different order) | 5739 | 0.175 | 17.08× |
-| sort-by | 1195 | 0.838 | 82.02× |
+| fast-multisort | 104059 | 0.010 | 1.00× |
+| remeda.sortBy | 87238 | 0.012 | 1.19× |
+| Array.prototype.sort, decorated | 82171 | 0.012 | 1.27× |
+| es-toolkit.orderBy | 80770 | 0.012 | 1.29× |
+| lodash.orderBy | 79913 | 0.013 | 1.30× |
+| thenby | 65769 | 0.015 | 1.58× |
+| fast-sort | 61619 | 0.016 | 1.69× |
+| ramda.sortWith | 50809 | 0.020 | 2.05× |
+| sort-array | 44640 | 0.023 | 2.33× |
+| sort-on (different order) | 8652 | 0.116 | 12.03× |
+| natural-orderby (different order) | 5683 | 0.176 | 18.31× |
+| sort-by | 1198 | 0.836 | 86.89× |
 
 #### 1,000 rows, string key, 10 distinct values
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 17727 | 0.057 | 1.00× |
-| underscore.sortBy | 6235 | 0.161 | 2.84× |
-| remeda.sortBy | 5211 | 0.192 | 3.40× |
-| thenby | 5143 | 0.195 | 3.45× |
-| lodash.orderBy | 4794 | 0.209 | 3.70× |
-| es-toolkit.orderBy | 4759 | 0.210 | 3.73× |
-| fast-sort | 4654 | 0.215 | 3.81× |
-| Array.prototype.sort, decorated | 4569 | 0.219 | 3.88× |
-| ramda.sortWith | 3119 | 0.321 | 5.68× |
-| sort-array | 2820 | 0.355 | 6.29× |
-| just-sort-by (different order) | 2038 | 0.497 | 8.70× |
-| natural-orderby (different order) | 1060 | 0.945 | 16.73× |
-| sort-on (different order) | 546 | 1.832 | 32.44× |
-| sort-by | 73 | 13.695 | 242.60× |
+| fast-multisort | 17533 | 0.057 | 1.00× |
+| underscore.sortBy | 6329 | 0.158 | 2.77× |
+| thenby | 4976 | 0.201 | 3.52× |
+| remeda.sortBy | 4929 | 0.203 | 3.56× |
+| lodash.orderBy | 4835 | 0.207 | 3.63× |
+| es-toolkit.orderBy | 4630 | 0.216 | 3.79× |
+| fast-sort | 4617 | 0.217 | 3.80× |
+| Array.prototype.sort, decorated | 4524 | 0.221 | 3.88× |
+| ramda.sortWith | 3053 | 0.328 | 5.74× |
+| sort-array | 2763 | 0.362 | 6.35× |
+| just-sort-by (different order) | 2101 | 0.477 | 8.34× |
+| natural-orderby (different order) | 1019 | 0.982 | 17.21× |
+| sort-on (different order) | 541 | 1.850 | 32.42× |
+| sort-by | 73 | 13.641 | 239.10× |
 
 #### 1,000 rows, string key, all unique
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 12150 | 0.083 | 1.00× |
-| underscore.sortBy | 5389 | 0.186 | 2.25× |
-| remeda.sortBy | 4693 | 0.213 | 2.59× |
-| thenby | 4591 | 0.218 | 2.65× |
-| fast-sort | 4331 | 0.231 | 2.81× |
-| es-toolkit.orderBy | 4310 | 0.232 | 2.82× |
-| lodash.orderBy | 4252 | 0.236 | 2.86× |
-| Array.prototype.sort, decorated | 4150 | 0.241 | 2.93× |
-| ramda.sortWith | 2872 | 0.349 | 4.23× |
-| sort-array | 2611 | 0.383 | 4.65× |
-| just-sort-by (different order) | 2054 | 0.488 | 5.92× |
-| natural-orderby (different order) | 734 | 1.365 | 16.55× |
-| sort-on (different order) | 474 | 2.113 | 25.63× |
-| sort-by | 72 | 13.973 | 169.67× |
+| fast-multisort | 11851 | 0.085 | 1.00× |
+| underscore.sortBy | 5326 | 0.188 | 2.23× |
+| thenby | 4631 | 0.216 | 2.56× |
+| remeda.sortBy | 4525 | 0.221 | 2.62× |
+| es-toolkit.orderBy | 4220 | 0.237 | 2.81× |
+| fast-sort | 4203 | 0.238 | 2.82× |
+| Array.prototype.sort, decorated | 4172 | 0.240 | 2.84× |
+| lodash.orderBy | 4168 | 0.240 | 2.84× |
+| ramda.sortWith | 2933 | 0.341 | 4.04× |
+| sort-array | 2555 | 0.392 | 4.64× |
+| just-sort-by (different order) | 2061 | 0.486 | 5.75× |
+| natural-orderby (different order) | 744 | 1.345 | 15.92× |
+| sort-on (different order) | 481 | 2.081 | 24.65× |
+| sort-by | 70 | 14.317 | 169.46× |
 
 #### 1,000 rows, integer key, 10% null
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 30179 | 0.033 | 1.00× |
-| underscore.sortBy (different order) | 9816 | 0.102 | 3.07× |
-| remeda.sortBy (different order) | 6861 | 0.146 | 4.40× |
-| thenby (different order) | 6832 | 0.147 | 4.42× |
-| just-sort-by (different order) | 6660 | 0.150 | 4.53× |
-| lodash.orderBy | 6578 | 0.152 | 4.59× |
-| fast-sort | 6560 | 0.153 | 4.60× |
-| es-toolkit.orderBy | 6315 | 0.159 | 4.78× |
-| Array.prototype.sort, decorated | 6239 | 0.161 | 4.84× |
-| ramda.sortWith (different order) | 3771 | 0.266 | 8.00× |
-| sort-array | 3770 | 0.265 | 8.01× |
-| natural-orderby | 2229 | 0.449 | 13.54× |
-| sort-on | 622 | 1.610 | 48.55× |
-| sort-by (different order) | 73 | 13.625 | 410.73× |
+| fast-multisort | 29779 | 0.034 | 1.00× |
+| underscore.sortBy (different order) | 9790 | 0.102 | 3.04× |
+| just-sort-by (different order) | 6785 | 0.148 | 4.39× |
+| thenby (different order) | 6740 | 0.149 | 4.42× |
+| lodash.orderBy | 6599 | 0.152 | 4.51× |
+| fast-sort | 6482 | 0.155 | 4.59× |
+| remeda.sortBy (different order) | 6468 | 0.155 | 4.60× |
+| es-toolkit.orderBy | 6271 | 0.160 | 4.75× |
+| Array.prototype.sort, decorated | 6150 | 0.163 | 4.84× |
+| ramda.sortWith (different order) | 3743 | 0.267 | 7.96× |
+| sort-array | 3731 | 0.268 | 7.98× |
+| natural-orderby | 2241 | 0.447 | 13.29× |
+| sort-on | 615 | 1.627 | 48.42× |
+| sort-by (different order) | 74 | 13.450 | 400.35× |
 
 #### 1,000 rows, float key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 25166 | 0.040 | 1.00× |
-| underscore.sortBy | 8276 | 0.121 | 3.04× |
-| remeda.sortBy | 6176 | 0.162 | 4.07× |
-| thenby | 6156 | 0.163 | 4.09× |
-| just-sort-by | 6112 | 0.164 | 4.12× |
-| fast-sort | 5805 | 0.173 | 4.34× |
-| lodash.orderBy | 5734 | 0.175 | 4.39× |
-| es-toolkit.orderBy | 5627 | 0.178 | 4.47× |
-| Array.prototype.sort, decorated | 5343 | 0.187 | 4.71× |
-| ramda.sortWith | 3511 | 0.285 | 7.17× |
-| sort-array | 3354 | 0.299 | 7.50× |
-| natural-orderby | 1894 | 0.529 | 13.29× |
-| sort-on | 540 | 1.853 | 46.61× |
-| sort-by | 71 | 14.009 | 352.46× |
+| fast-multisort | 25605 | 0.039 | 1.00× |
+| underscore.sortBy | 8524 | 0.118 | 3.00× |
+| just-sort-by | 6179 | 0.162 | 4.14× |
+| thenby | 6061 | 0.165 | 4.22× |
+| remeda.sortBy | 5995 | 0.167 | 4.27× |
+| lodash.orderBy | 5892 | 0.170 | 4.35× |
+| fast-sort | 5648 | 0.178 | 4.53× |
+| es-toolkit.orderBy | 5554 | 0.180 | 4.61× |
+| Array.prototype.sort, decorated | 5397 | 0.186 | 4.74× |
+| ramda.sortWith | 3497 | 0.286 | 7.32× |
+| sort-array | 3285 | 0.306 | 7.80× |
+| natural-orderby | 1888 | 0.530 | 13.56× |
+| sort-on | 534 | 1.873 | 47.94× |
+| sort-by | 72 | 13.959 | 357.30× |
 
 #### 1,000 rows, ISO date string key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 12116 | 0.083 | 1.00× |
-| underscore.sortBy | 5766 | 0.174 | 2.10× |
-| remeda.sortBy | 5164 | 0.194 | 2.35× |
-| thenby | 5132 | 0.195 | 2.36× |
-| es-toolkit.orderBy | 4660 | 0.215 | 2.60× |
-| fast-sort | 4658 | 0.215 | 2.60× |
-| Array.prototype.sort, decorated | 4533 | 0.221 | 2.67× |
-| lodash.orderBy | 4489 | 0.223 | 2.70× |
-| just-sort-by | 3212 | 0.312 | 3.77× |
-| ramda.sortWith | 3111 | 0.322 | 3.90× |
-| sort-array | 2829 | 0.354 | 4.28× |
-| natural-orderby | 1403 | 0.714 | 8.64× |
-| sort-on | 464 | 2.157 | 26.11× |
-| sort-by | 70 | 14.372 | 174.04× |
+| fast-multisort | 11837 | 0.085 | 1.00× |
+| underscore.sortBy | 5676 | 0.176 | 2.09× |
+| thenby | 5233 | 0.191 | 2.26× |
+| remeda.sortBy | 5135 | 0.195 | 2.31× |
+| es-toolkit.orderBy | 4791 | 0.209 | 2.47× |
+| fast-sort | 4718 | 0.212 | 2.51× |
+| Array.prototype.sort, decorated | 4508 | 0.222 | 2.63× |
+| lodash.orderBy | 4436 | 0.226 | 2.67× |
+| just-sort-by | 3214 | 0.312 | 3.68× |
+| ramda.sortWith | 3103 | 0.323 | 3.81× |
+| sort-array | 2856 | 0.350 | 4.14× |
+| natural-orderby | 1412 | 0.709 | 8.38× |
+| sort-on | 455 | 2.197 | 25.99× |
+| sort-by | 70 | 14.321 | 169.49× |
 
 #### 1,000 rows, already sorted integer key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 95673 | 0.011 | 1.00× |
-| just-sort-by | 79326 | 0.013 | 1.21× |
-| thenby | 72570 | 0.014 | 1.32× |
-| remeda.sortBy | 66767 | 0.015 | 1.43× |
-| fast-sort | 64402 | 0.016 | 1.49× |
-| es-toolkit.orderBy | 62059 | 0.016 | 1.54× |
-| Array.prototype.sort, decorated | 54438 | 0.019 | 1.76× |
-| underscore.sortBy | 48336 | 0.021 | 1.98× |
-| lodash.orderBy | 37776 | 0.027 | 2.53× |
-| ramda.sortWith | 35790 | 0.028 | 2.67× |
-| sort-array | 35550 | 0.028 | 2.69× |
-| sort-on | 4895 | 0.205 | 19.54× |
-| natural-orderby | 3344 | 0.300 | 28.61× |
-| sort-by | 607 | 1.649 | 157.68× |
+| fast-multisort | 96562 | 0.010 | 1.00× |
+| just-sort-by | 80083 | 0.013 | 1.21× |
+| thenby | 68892 | 0.015 | 1.40× |
+| fast-sort | 62676 | 0.016 | 1.54× |
+| remeda.sortBy | 61953 | 0.016 | 1.56× |
+| es-toolkit.orderBy | 61814 | 0.016 | 1.56× |
+| Array.prototype.sort, decorated | 53679 | 0.019 | 1.80× |
+| underscore.sortBy | 47164 | 0.021 | 2.05× |
+| lodash.orderBy | 38607 | 0.026 | 2.50× |
+| ramda.sortWith | 35489 | 0.028 | 2.72× |
+| sort-array | 35434 | 0.028 | 2.73× |
+| sort-on | 4664 | 0.215 | 20.70× |
+| natural-orderby | 3354 | 0.299 | 28.79× |
+| sort-by | 607 | 1.649 | 159.09× |
 
 #### 1,000 rows, reverse sorted integer key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 110862 | 0.009 | 1.00× |
-| just-sort-by | 75624 | 0.013 | 1.47× |
-| thenby | 74614 | 0.014 | 1.49× |
-| fast-sort | 68082 | 0.015 | 1.63× |
-| es-toolkit.orderBy | 65024 | 0.016 | 1.70× |
-| remeda.sortBy | 62565 | 0.016 | 1.77× |
-| Array.prototype.sort, decorated | 53170 | 0.019 | 2.09× |
-| underscore.sortBy | 44050 | 0.023 | 2.52× |
-| ramda.sortWith | 36683 | 0.027 | 3.02× |
-| sort-array | 36191 | 0.028 | 3.06× |
-| lodash.orderBy | 35346 | 0.029 | 3.14× |
-| sort-on | 4298 | 0.233 | 25.80× |
-| natural-orderby | 3380 | 0.297 | 32.80× |
-| sort-by | 608 | 1.646 | 182.34× |
+| fast-multisort | 108356 | 0.009 | 1.00× |
+| just-sort-by | 77331 | 0.013 | 1.40× |
+| thenby | 74075 | 0.014 | 1.46× |
+| fast-sort | 66036 | 0.015 | 1.64× |
+| es-toolkit.orderBy | 65806 | 0.015 | 1.65× |
+| remeda.sortBy | 62608 | 0.016 | 1.73× |
+| Array.prototype.sort, decorated | 54004 | 0.019 | 2.01× |
+| underscore.sortBy | 44628 | 0.023 | 2.43× |
+| sort-array | 36464 | 0.028 | 2.97× |
+| ramda.sortWith | 36095 | 0.028 | 3.00× |
+| lodash.orderBy | 35909 | 0.028 | 3.02× |
+| sort-on | 4329 | 0.231 | 25.03× |
+| natural-orderby | 3332 | 0.301 | 32.52× |
+| sort-by | 603 | 1.660 | 179.71× |
 
 #### 1,000 rows, three keys, mixed directions
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 11462 | 0.088 | 1.00× |
-| Array.prototype.sort, decorated | 4526 | 0.221 | 2.53× |
-| lodash.orderBy | 4470 | 0.224 | 2.56× |
-| es-toolkit.orderBy | 4405 | 0.228 | 2.60× |
-| remeda.sortBy (different order) | 4130 | 0.242 | 2.78× |
-| thenby (different order) | 3945 | 0.254 | 2.91× |
-| fast-sort (different order) | 3651 | 0.274 | 3.14× |
-| ramda.sortWith (different order) | 2753 | 0.364 | 4.16× |
-| sort-array (different order) | 2467 | 0.406 | 4.65× |
-| natural-orderby (different order) | 525 | 1.907 | 21.83× |
-| sort-on (different order) | 504 | 1.987 | 22.75× |
-| sort-by (different order) | 70 | 14.220 | 162.86× |
+| fast-multisort | 11671 | 0.086 | 1.00× |
+| Array.prototype.sort, decorated | 4498 | 0.223 | 2.59× |
+| lodash.orderBy | 4443 | 0.225 | 2.63× |
+| es-toolkit.orderBy | 4338 | 0.231 | 2.69× |
+| remeda.sortBy (different order) | 4007 | 0.250 | 2.91× |
+| thenby (different order) | 3806 | 0.263 | 3.07× |
+| fast-sort (different order) | 3430 | 0.292 | 3.40× |
+| ramda.sortWith (different order) | 2724 | 0.368 | 4.28× |
+| sort-array (different order) | 2395 | 0.418 | 4.87× |
+| natural-orderby (different order) | 516 | 1.943 | 22.63× |
+| sort-on (different order) | 499 | 2.006 | 23.38× |
+| sort-by (different order) | 69 | 14.453 | 168.63× |
 
 #### 10,000 rows, string key, 10 distinct values
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 3069 | 0.331 | 1.00× |
-| underscore.sortBy | 417 | 2.403 | 7.37× |
-| thenby | 360 | 2.781 | 8.53× |
-| fast-sort | 335 | 2.984 | 9.16× |
-| es-toolkit.orderBy | 328 | 3.047 | 9.35× |
-| Array.prototype.sort, decorated | 320 | 3.122 | 9.58× |
-| lodash.orderBy | 314 | 3.191 | 9.79× |
-| remeda.sortBy | 298 | 3.354 | 10.29× |
-| ramda.sortWith | 204 | 4.904 | 15.03× |
-| sort-array | 187 | 5.340 | 16.39× |
-| just-sort-by (different order) | 157 | 6.382 | 19.58× |
-| natural-orderby (different order) | 89 | 11.206 | 34.36× |
-| sort-on (different order) | 38 | 26.399 | 80.77× |
-| sort-by | 5 | 191.485 | 587.44× |
+| fast-multisort | 3159 | 0.318 | 1.00× |
+| underscore.sortBy | 423 | 2.366 | 7.47× |
+| thenby | 349 | 2.866 | 9.05× |
+| fast-sort | 330 | 3.034 | 9.58× |
+| Array.prototype.sort, decorated | 326 | 3.069 | 9.69× |
+| es-toolkit.orderBy | 324 | 3.088 | 9.75× |
+| lodash.orderBy | 315 | 3.175 | 10.02× |
+| remeda.sortBy | 294 | 3.401 | 10.74× |
+| ramda.sortWith | 208 | 4.807 | 15.18× |
+| sort-array | 187 | 5.343 | 16.87× |
+| just-sort-by (different order) | 153 | 6.555 | 20.65× |
+| natural-orderby (different order) | 87 | 11.438 | 36.11× |
+| sort-on (different order) | 38 | 26.026 | 82.13× |
+| sort-by | 5 | 189.950 | 599.79× |
 
 #### 10,000 rows, string key, all unique
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 747 | 1.347 | 1.00× |
-| underscore.sortBy | 340 | 2.942 | 2.19× |
-| thenby | 308 | 3.247 | 2.42× |
-| fast-sort | 292 | 3.430 | 2.56× |
-| es-toolkit.orderBy | 286 | 3.499 | 2.61× |
-| Array.prototype.sort, decorated | 277 | 3.617 | 2.70× |
-| remeda.sortBy | 267 | 3.751 | 2.80× |
-| lodash.orderBy | 261 | 3.839 | 2.86× |
-| ramda.sortWith | 191 | 5.235 | 3.91× |
-| sort-array | 171 | 5.857 | 4.37× |
-| just-sort-by (different order) | 147 | 6.818 | 5.08× |
-| natural-orderby (different order) | 58 | 17.416 | 12.97× |
-| sort-on (different order) | 34 | 29.653 | 22.10× |
-| sort-by | 5 | 195.050 | 145.59× |
+| fast-multisort | 726 | 1.383 | 1.00× |
+| underscore.sortBy | 335 | 2.983 | 2.17× |
+| thenby | 306 | 3.271 | 2.37× |
+| fast-sort | 288 | 3.469 | 2.52× |
+| es-toolkit.orderBy | 286 | 3.498 | 2.54× |
+| Array.prototype.sort, decorated | 278 | 3.601 | 2.61× |
+| remeda.sortBy | 265 | 3.777 | 2.74× |
+| lodash.orderBy | 259 | 3.864 | 2.80× |
+| ramda.sortWith | 189 | 5.284 | 3.84× |
+| sort-array | 172 | 5.826 | 4.23× |
+| just-sort-by (different order) | 141 | 7.130 | 5.14× |
+| natural-orderby (different order) | 58 | 17.382 | 12.61× |
+| sort-on (different order) | 33 | 29.914 | 21.72× |
+| sort-by | 5 | 199.527 | 144.87× |
 
 #### 10,000 rows, integer key, 10% null
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 3662 | 0.274 | 1.00× |
-| underscore.sortBy (different order) | 703 | 1.426 | 5.21× |
-| just-sort-by (different order) | 505 | 1.982 | 7.26× |
-| thenby (different order) | 504 | 1.984 | 7.26× |
-| fast-sort | 483 | 2.072 | 7.58× |
-| lodash.orderBy | 479 | 2.091 | 7.65× |
-| Array.prototype.sort, decorated | 462 | 2.167 | 7.93× |
-| es-toolkit.orderBy | 454 | 2.205 | 8.07× |
-| remeda.sortBy (different order) | 421 | 2.377 | 8.70× |
-| ramda.sortWith (different order) | 258 | 3.870 | 14.17× |
-| sort-array | 248 | 4.038 | 14.78× |
-| natural-orderby | 182 | 5.506 | 20.16× |
-| sort-on | 45 | 22.270 | 81.54× |
-| sort-by (different order) | 5 | 184.011 | 673.68× |
+| fast-multisort | 3649 | 0.275 | 1.00× |
+| underscore.sortBy (different order) | 717 | 1.395 | 5.09× |
+| thenby (different order) | 511 | 1.957 | 7.14× |
+| just-sort-by (different order) | 489 | 2.047 | 7.47× |
+| fast-sort | 474 | 2.115 | 7.71× |
+| lodash.orderBy | 472 | 2.119 | 7.73× |
+| es-toolkit.orderBy | 467 | 2.141 | 7.81× |
+| Array.prototype.sort, decorated | 460 | 2.178 | 7.94× |
+| remeda.sortBy (different order) | 428 | 2.338 | 8.53× |
+| ramda.sortWith (different order) | 258 | 3.878 | 14.15× |
+| sort-array | 248 | 4.039 | 14.73× |
+| natural-orderby | 183 | 5.457 | 19.90× |
+| sort-on | 44 | 22.666 | 82.57× |
+| sort-by (different order) | 6 | 181.652 | 662.71× |
 
 #### 10,000 rows, float key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 3045 | 0.329 | 1.00× |
-| underscore.sortBy | 603 | 1.660 | 5.05× |
-| just-sort-by | 441 | 2.272 | 6.90× |
-| thenby | 436 | 2.297 | 6.99× |
-| fast-sort | 422 | 2.372 | 7.22× |
-| lodash.orderBy | 404 | 2.476 | 7.53× |
-| es-toolkit.orderBy | 396 | 2.525 | 7.68× |
-| Array.prototype.sort, decorated | 392 | 2.551 | 7.76× |
-| remeda.sortBy | 389 | 2.571 | 7.82× |
-| ramda.sortWith | 236 | 4.246 | 12.93× |
-| sort-array | 215 | 4.674 | 14.19× |
-| natural-orderby | 147 | 6.806 | 20.72× |
-| sort-on | 39 | 25.878 | 78.70× |
-| sort-by | 5 | 197.741 | 602.03× |
+| fast-multisort | 2972 | 0.337 | 1.00× |
+| underscore.sortBy | 617 | 1.622 | 4.82× |
+| just-sort-by | 447 | 2.237 | 6.65× |
+| thenby | 440 | 2.272 | 6.75× |
+| fast-sort | 419 | 2.390 | 7.10× |
+| es-toolkit.orderBy | 406 | 2.464 | 7.32× |
+| remeda.sortBy | 399 | 2.507 | 7.45× |
+| lodash.orderBy | 394 | 2.545 | 7.54× |
+| Array.prototype.sort, decorated | 393 | 2.548 | 7.57× |
+| ramda.sortWith | 236 | 4.248 | 12.62× |
+| sort-array | 219 | 4.577 | 13.60× |
+| natural-orderby | 143 | 7.017 | 20.81× |
+| sort-on | 38 | 26.065 | 77.45× |
+| sort-by | 5 | 196.619 | 584.28× |
 
 #### 10,000 rows, ISO date string key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 728 | 1.381 | 1.00× |
-| underscore.sortBy | 384 | 2.603 | 1.90× |
-| thenby | 348 | 2.874 | 2.09× |
-| fast-sort | 329 | 3.039 | 2.21× |
-| es-toolkit.orderBy | 319 | 3.138 | 2.28× |
-| Array.prototype.sort, decorated | 312 | 3.204 | 2.33× |
-| remeda.sortBy | 299 | 3.342 | 2.43× |
-| lodash.orderBy | 293 | 3.421 | 2.49× |
-| just-sort-by | 230 | 4.360 | 3.17× |
-| ramda.sortWith | 201 | 4.975 | 3.62× |
-| sort-array | 189 | 5.295 | 3.86× |
-| natural-orderby | 113 | 8.832 | 6.43× |
-| sort-on | 33 | 30.344 | 22.10× |
-| sort-by | 5 | 199.914 | 145.58× |
+| fast-multisort | 738 | 1.360 | 1.00× |
+| underscore.sortBy | 384 | 2.607 | 1.92× |
+| thenby | 346 | 2.896 | 2.13× |
+| fast-sort | 323 | 3.095 | 2.28× |
+| es-toolkit.orderBy | 320 | 3.125 | 2.30× |
+| Array.prototype.sort, decorated | 308 | 3.248 | 2.40× |
+| remeda.sortBy | 299 | 3.347 | 2.47× |
+| lodash.orderBy | 283 | 3.537 | 2.61× |
+| just-sort-by | 236 | 4.234 | 3.12× |
+| ramda.sortWith | 201 | 4.965 | 3.66× |
+| sort-array | 191 | 5.232 | 3.86× |
+| natural-orderby | 111 | 8.986 | 6.63× |
+| sort-on | 33 | 30.791 | 22.69× |
+| sort-by | 5 | 200.369 | 147.80× |
 
 #### 10,000 rows, already sorted integer key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 9641 | 0.104 | 1.00× |
-| just-sort-by | 7921 | 0.127 | 1.22× |
-| thenby | 7107 | 0.141 | 1.36× |
-| fast-sort | 6579 | 0.153 | 1.47× |
-| remeda.sortBy | 6121 | 0.164 | 1.58× |
-| es-toolkit.orderBy | 6025 | 0.166 | 1.60× |
-| Array.prototype.sort, decorated | 5605 | 0.179 | 1.72× |
-| underscore.sortBy | 4796 | 0.210 | 2.01× |
-| lodash.orderBy | 3697 | 0.275 | 2.61× |
-| ramda.sortWith | 3292 | 0.304 | 2.93× |
-| sort-array | 3181 | 0.315 | 3.03× |
-| sort-on | 483 | 2.071 | 19.95× |
-| natural-orderby | 314 | 3.196 | 30.75× |
-| sort-by | 62 | 16.140 | 155.56× |
+| fast-multisort | 10086 | 0.099 | 1.00× |
+| just-sort-by | 8157 | 0.123 | 1.24× |
+| thenby | 6950 | 0.144 | 1.45× |
+| fast-sort | 6484 | 0.154 | 1.56× |
+| remeda.sortBy | 6328 | 0.158 | 1.59× |
+| es-toolkit.orderBy | 6236 | 0.161 | 1.62× |
+| Array.prototype.sort, decorated | 5600 | 0.179 | 1.80× |
+| underscore.sortBy | 4766 | 0.211 | 2.12× |
+| lodash.orderBy | 3791 | 0.266 | 2.66× |
+| ramda.sortWith | 3354 | 0.298 | 3.01× |
+| sort-array | 3213 | 0.311 | 3.14× |
+| sort-on | 469 | 2.133 | 21.49× |
+| natural-orderby | 318 | 3.150 | 31.75× |
+| sort-by | 60 | 16.670 | 168.08× |
 
 #### 10,000 rows, reverse sorted integer key
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 10482 | 0.096 | 1.00× |
-| just-sort-by | 7702 | 0.130 | 1.36× |
-| thenby | 7349 | 0.136 | 1.43× |
-| fast-sort | 6700 | 0.150 | 1.56× |
-| es-toolkit.orderBy | 6010 | 0.167 | 1.74× |
-| Array.prototype.sort, decorated | 5523 | 0.182 | 1.90× |
-| remeda.sortBy | 5119 | 0.196 | 2.05× |
-| underscore.sortBy | 4434 | 0.227 | 2.36× |
-| lodash.orderBy | 3382 | 0.299 | 3.10× |
-| ramda.sortWith | 3323 | 0.301 | 3.15× |
-| sort-array | 3221 | 0.311 | 3.25× |
-| sort-on | 423 | 2.363 | 24.75× |
-| natural-orderby | 319 | 3.134 | 32.82× |
-| sort-by | 61 | 16.502 | 172.94× |
+| fast-multisort | 10476 | 0.096 | 1.00× |
+| just-sort-by | 7923 | 0.126 | 1.32× |
+| thenby | 7403 | 0.135 | 1.42× |
+| fast-sort | 6717 | 0.149 | 1.56× |
+| es-toolkit.orderBy | 6320 | 0.159 | 1.66× |
+| Array.prototype.sort, decorated | 5456 | 0.184 | 1.92× |
+| remeda.sortBy | 5314 | 0.188 | 1.97× |
+| underscore.sortBy | 4519 | 0.222 | 2.32× |
+| lodash.orderBy | 3421 | 0.296 | 3.06× |
+| ramda.sortWith | 3344 | 0.299 | 3.13× |
+| sort-array | 3244 | 0.309 | 3.23× |
+| sort-on | 425 | 2.354 | 24.65× |
+| natural-orderby | 316 | 3.170 | 33.18× |
+| sort-by | 61 | 16.375 | 171.47× |
 
 #### 10,000 rows, three keys, mixed directions
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 1375 | 0.729 | 1.00× |
-| Array.prototype.sort, decorated | 294 | 3.406 | 4.68× |
-| lodash.orderBy | 282 | 3.549 | 4.88× |
-| es-toolkit.orderBy | 279 | 3.591 | 4.93× |
-| remeda.sortBy (different order) | 263 | 3.805 | 5.23× |
-| thenby (different order) | 257 | 3.886 | 5.34× |
-| fast-sort (different order) | 233 | 4.290 | 5.89× |
-| ramda.sortWith (different order) | 180 | 5.561 | 7.64× |
-| sort-array (different order) | 161 | 6.231 | 8.56× |
-| natural-orderby (different order) | 43 | 23.238 | 31.88× |
-| sort-on (different order) | 33 | 30.351 | 41.71× |
-| sort-by (different order) | 4 | 231.492 | 318.18× |
+| fast-multisort | 1360 | 0.737 | 1.00× |
+| Array.prototype.sort, decorated | 289 | 3.467 | 4.71× |
+| lodash.orderBy | 285 | 3.511 | 4.77× |
+| es-toolkit.orderBy | 280 | 3.576 | 4.86× |
+| remeda.sortBy (different order) | 256 | 3.909 | 5.31× |
+| thenby (different order) | 254 | 3.947 | 5.36× |
+| fast-sort (different order) | 226 | 4.428 | 6.02× |
+| ramda.sortWith (different order) | 178 | 5.618 | 7.64× |
+| sort-array (different order) | 159 | 6.278 | 8.53× |
+| natural-orderby (different order) | 44 | 22.512 | 30.59× |
+| sort-on (different order) | 33 | 30.081 | 40.90× |
+| sort-by (different order) | 4 | 229.657 | 312.23× |
 
 #### 100,000 rows, string key, 10 distinct values
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 267 | 3.757 | 1.00× |
-| underscore.sortBy | 34 | 29.180 | 7.78× |
-| thenby | 30 | 33.323 | 8.88× |
-| fast-sort | 28 | 35.475 | 9.47× |
-| es-toolkit.orderBy | 27 | 37.063 | 9.84× |
-| Array.prototype.sort, decorated | 26 | 39.050 | 10.41× |
-| remeda.sortBy | 25 | 40.001 | 10.68× |
-| lodash.orderBy | 24 | 40.890 | 10.90× |
-| ramda.sortWith | 17 | 57.463 | 15.34× |
-| sort-array | 16 | 62.540 | 16.68× |
-| just-sort-by (different order) | 13 | 77.207 | 20.60× |
-| natural-orderby (different order) | 7 | 137.149 | 36.60× |
-| sort-on (different order) | 3 | 298.526 | 79.69× |
-| sort-by | 0 | 2168.521 | 579.11× |
+| fast-multisort | 278 | 3.610 | 1.00× |
+| underscore.sortBy | 35 | 28.895 | 8.03× |
+| thenby | 30 | 33.159 | 9.21× |
+| fast-sort | 28 | 35.349 | 9.81× |
+| es-toolkit.orderBy | 28 | 35.947 | 9.99× |
+| Array.prototype.sort, decorated | 26 | 39.080 | 10.84× |
+| lodash.orderBy | 25 | 40.065 | 11.12× |
+| remeda.sortBy | 24 | 40.960 | 11.39× |
+| ramda.sortWith | 17 | 57.432 | 15.96× |
+| sort-array | 16 | 62.193 | 17.27× |
+| just-sort-by (different order) | 13 | 77.708 | 21.58× |
+| natural-orderby (different order) | 7 | 137.155 | 38.10× |
+| sort-on (different order) | 3 | 306.544 | 85.18× |
+| sort-by | 0 | 2176.220 | 605.11× |
 
 #### 100,000 rows, integer key, 10% null
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 297 | 3.405 | 1.00× |
-| underscore.sortBy (different order) | 52 | 19.354 | 5.71× |
-| just-sort-by (different order) | 38 | 26.158 | 7.75× |
-| thenby (different order) | 38 | 26.121 | 7.75× |
-| fast-sort | 37 | 27.256 | 8.09× |
-| es-toolkit.orderBy | 35 | 28.716 | 8.50× |
-| remeda.sortBy (different order) | 32 | 30.794 | 9.13× |
-| lodash.orderBy | 32 | 31.664 | 9.38× |
-| Array.prototype.sort, decorated | 31 | 32.001 | 9.47× |
-| ramda.sortWith (different order) | 20 | 50.460 | 14.97× |
-| sort-array | 19 | 52.299 | 15.52× |
-| natural-orderby | 13 | 78.577 | 23.29× |
-| sort-on | 3 | 289.065 | 85.75× |
-| sort-by (different order) | 0 | 2320.985 | 688.85× |
+| fast-multisort | 328 | 3.091 | 1.00× |
+| underscore.sortBy (different order) | 52 | 19.467 | 6.37× |
+| thenby (different order) | 38 | 26.113 | 8.56× |
+| just-sort-by (different order) | 38 | 26.299 | 8.62× |
+| fast-sort | 36 | 27.670 | 9.06× |
+| es-toolkit.orderBy | 35 | 28.400 | 9.30× |
+| remeda.sortBy (different order) | 33 | 30.764 | 10.08× |
+| lodash.orderBy | 32 | 31.531 | 10.30× |
+| Array.prototype.sort, decorated | 31 | 32.058 | 10.48× |
+| ramda.sortWith (different order) | 20 | 50.393 | 16.51× |
+| sort-array | 19 | 51.963 | 17.04× |
+| natural-orderby | 13 | 77.458 | 25.37× |
+| sort-on | 3 | 291.995 | 95.71× |
+| sort-by (different order) | 0 | 2314.834 | 759.11× |
 
 #### 100,000 rows, three keys, mixed directions
 
 | library | ops/sec | mean ms | vs fast-multisort |
 |---|---:|---:|---:|
-| fast-multisort | 89 | 11.303 | 1.00× |
-| es-toolkit.orderBy | 19 | 53.119 | 4.70× |
-| remeda.sortBy (different order) | 18 | 55.071 | 4.88× |
-| thenby (different order) | 18 | 56.830 | 5.03× |
-| Array.prototype.sort, decorated | 18 | 57.335 | 5.04× |
-| lodash.orderBy | 17 | 57.758 | 5.11× |
-| fast-sort (different order) | 15 | 65.946 | 5.84× |
-| ramda.sortWith (different order) | 12 | 83.084 | 7.36× |
-| sort-array (different order) | 11 | 91.338 | 8.09× |
-| natural-orderby (different order) | 4 | 278.481 | 24.67× |
-| sort-on (different order) | 2 | 444.399 | 39.36× |
-| sort-by (different order) | 0 | 3432.904 | 304.19× |
+| fast-multisort | 94 | 10.723 | 1.00× |
+| es-toolkit.orderBy | 19 | 52.555 | 4.91× |
+| Array.prototype.sort, decorated | 18 | 56.814 | 5.30× |
+| remeda.sortBy (different order) | 18 | 57.096 | 5.33× |
+| lodash.orderBy | 17 | 57.670 | 5.38× |
+| thenby (different order) | 17 | 58.121 | 5.43× |
+| fast-sort (different order) | 15 | 67.641 | 6.31× |
+| ramda.sortWith (different order) | 12 | 85.127 | 7.95× |
+| sort-array (different order) | 11 | 91.991 | 8.59× |
+| natural-orderby (different order) | 4 | 277.705 | 25.95× |
+| sort-on (different order) | 2 | 450.149 | 42.07× |
+| sort-by (different order) | 0 | 3446.252 | 322.24× |
 
 Apple M5 Max, 18 cores, 128 GB, Darwin 27.2.0, Node v24.21.0
