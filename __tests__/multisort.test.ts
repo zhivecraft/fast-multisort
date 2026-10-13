@@ -72,7 +72,7 @@ describe("multisort", () => {
         })
         .map(({item}) => item);
     fc.assert(
-      fc.property(fc.array(rowArb, {maxLength: 60}), fc.array(ruleArb, {minLength: 1, maxLength: 3}), (items, rules) => {
+      fc.property(fc.array(rowArb, {maxLength: 300}), fc.array(ruleArb, {maxLength: 3}), (items, rules) => {
         const indexed = items.map((row, id) => ({...row, id}));
         expect(ids(multisort(indexed, rules))).toEqual(ids(reference(indexed, rules)));
       }),

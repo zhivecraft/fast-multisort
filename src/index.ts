@@ -9,6 +9,10 @@ export type SortColumn = {
   compare?: (a: unknown, b: unknown) => number;
 };
 
+const isSymbol = (value: unknown): boolean =>
+  typeof value === "symbol" ||
+  (typeof value === "object" && value !== null && Object.prototype.toString.call(value) === "[object Symbol]");
+
 const lodashSpecialClass = (key: unknown): number => {
   if (key === null) {
     return 2;
@@ -19,18 +23,18 @@ const lodashSpecialClass = (key: unknown): number => {
   if (Number.isNaN(key)) {
     return 4;
   }
-  return typeof key === "symbol" ? 1 : 0;
+  return isSymbol(key) ? 1 : 0;
 };
 
 const compareMixed = (value: unknown, other: unknown): number => {
   const valIsDefined = value !== undefined;
   const valIsNull = value === null;
   const valIsReflexive = !Number.isNaN(value);
-  const valIsSymbol = typeof value === "symbol";
+  const valIsSymbol = isSymbol(value);
   const othIsDefined = other !== undefined;
   const othIsNull = other === null;
   const othIsReflexive = !Number.isNaN(other);
-  const othIsSymbol = typeof other === "symbol";
+  const othIsSymbol = isSymbol(other);
   if (
     (!othIsNull && !othIsSymbol && !valIsSymbol && (value as number) > (other as number)) ||
     (valIsSymbol && othIsDefined && othIsReflexive && !othIsNull && !othIsSymbol) ||
@@ -73,13 +77,12 @@ export const compareAscending = (value: unknown, other: unknown): number => {
 
 const byNumber = (a: number, b: number) => a - b;
 
-type Sink = {out: Uint32Array; pos: number};
-
 const SMALL = 24;
 const RADIX_MIN = 64;
 const RADIX_BITS = 11;
 const RADIX_MASK = (1 << RADIX_BITS) - 1;
-const POOL_MAX = 1 << 17;
+const RETAIN_MAX = 1 << 17;
+const IDLE_FRAMES_MAX = 4;
 const counts = new Uint32Array(1 << RADIX_BITS);
 
 type Pool = {
@@ -88,33 +91,58 @@ type Pool = {
   hi: Uint32Array;
   order: Uint32Array;
   tmp: Uint32Array;
-  next: Int32Array;
-  tail: Int32Array;
 };
 
-const makePool = (size: number): Pool => ({
-  values: new Float64Array(size),
-  lo: new Uint32Array(size),
-  hi: new Uint32Array(size),
-  order: new Uint32Array(size),
-  tmp: new Uint32Array(size),
-  next: new Int32Array(size),
-  tail: new Int32Array(size),
-});
+type Chain = {next: Int32Array; tail: Int32Array};
 
-const pools: Pool[] = [];
+type Frame = {pools: Pool[]; chains: Chain[]; largest: number};
 
-const poolAt = (depth: number, n: number): Pool => {
-  if (n > POOL_MAX) {
-    return makePool(n);
+type Sink = {out: Uint32Array; pos: number; frame: Frame};
+
+const idleFrames: Frame[] = [];
+
+const acquireFrame = (): Frame => idleFrames.pop() ?? {pools: [], chains: [], largest: 0};
+
+const releaseFrame = (frame: Frame) => {
+  if (frame.largest <= RETAIN_MAX && idleFrames.length < IDLE_FRAMES_MAX) {
+    idleFrames.push(frame);
   }
-  let pool = pools[depth];
+};
+
+const grown = (frame: Frame, have: number, n: number) => {
+  const size = Math.max(n, 1024, have * 2);
+  frame.largest = Math.max(frame.largest, size);
+  return size;
+};
+
+const poolAt = (frame: Frame, depth: number, n: number): Pool => {
+  let pool = frame.pools[depth];
   if (pool === undefined || pool.values.length < n) {
-    pool = makePool(Math.max(n, 1024, pool === undefined ? 0 : pool.values.length * 2));
-    pools[depth] = pool;
+    const size = grown(frame, pool === undefined ? 0 : pool.values.length, n);
+    pool = {
+      values: new Float64Array(size),
+      lo: new Uint32Array(size),
+      hi: new Uint32Array(size),
+      order: new Uint32Array(size),
+      tmp: new Uint32Array(size),
+    };
+    frame.pools[depth] = pool;
   }
   return pool;
 };
+
+const chainAt = (frame: Frame, depth: number, n: number): Chain => {
+  let chain = frame.chains[depth];
+  if (chain === undefined || chain.next.length < n) {
+    const size = grown(frame, chain === undefined ? 0 : chain.next.length, n);
+    chain = {next: new Int32Array(size), tail: new Int32Array(size)};
+    frame.chains[depth] = chain;
+  }
+  return chain;
+};
+
+const LO = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1 ? 0 : 1;
+const HI = 1 - LO;
 
 const radixPass = (words: Uint32Array, shift: number, mask: number, from: Uint32Array, to: Uint32Array, n: number) => {
   counts.fill(0, 0, mask + 1);
@@ -147,8 +175,8 @@ const radixOrder = (pool: Pool, n: number): Uint32Array => {
   const {values, lo, hi} = pool;
   const raw = new Uint32Array(values.buffer, 0, n * 2);
   for (let i = 0; i < n; i++) {
-    const l = raw[2 * i];
-    const h = raw[2 * i + 1];
+    const l = raw[2 * i + LO];
+    const h = raw[2 * i + HI];
     if (h >>> 31) {
       lo[i] = ~l >>> 0;
       hi[i] = ~h >>> 0;
@@ -310,14 +338,14 @@ const windowSort = (strings: string[], idx: Uint32Array, n: number, offset: numb
   return true;
 };
 
-const sortUniqueStrings = (strings: string[]) => {
+const sortUniqueStrings = (strings: string[], frame: Frame) => {
   const n = strings.length;
   const idx = new Uint32Array(n);
   for (let i = 0; i < n; i++) {
     idx[i] = i;
   }
   const sorted = new Array<string>(n);
-  if (!windowSort(strings, idx, n, 0, 0, sorted, {out: idx, pos: 0})) {
+  if (!windowSort(strings, idx, n, 0, 0, sorted, {out: idx, pos: 0, frame})) {
     strings.sort();
     return;
   }
@@ -337,12 +365,26 @@ const comparatorFrom = (columns: SortColumn[], c: number) => (a: number, b: numb
     }
     const keyA = keys[a];
     const result =
-      classA === 0 ? (compare ?? compareAscending)(keyA, keys[b]) : Number.isNaN(keyA) ? compareAscending(keyA, keys[b]) : 0;
-    if (result !== 0) {
+      classA === 0
+        ? (compare ?? compareAscending)(keyA, keys[b])
+        : specialClass === lodashSpecialClass && Number.isNaN(keyA)
+          ? compareAscending(keyA, keys[b])
+          : 0;
+    if (result < 0 || result > 0) {
       return desc ? -result : result;
     }
   }
   return 0;
+};
+
+type Classes = Map<number, number[]>;
+
+const classBuckets = (classes: Classes, first: boolean): number[][] => {
+  const ids = Array.from(classes.keys()).sort(byNumber);
+  if (first) {
+    ids.reverse();
+  }
+  return ids.map((cls) => classes.get(cls)!);
 };
 
 const isFastColumn = ({keys, specialClass}: SortColumn): boolean => {
@@ -422,39 +464,34 @@ const emitRun = (
   }
 };
 
-const emitChain = (head: number, next: Int32Array, columns: SortColumn[], c: number, sink: Sink): void => {
+const emitChain = (
+  comparable: number[],
+  head: number,
+  next: Int32Array,
+  columns: SortColumn[],
+  c: number,
+  sink: Sink
+): void => {
   if (next[head] === -1) {
-    sink.out[sink.pos++] = head;
+    sink.out[sink.pos++] = comparable[head];
     return;
   }
   if (c < columns.length) {
     const bucket: number[] = [];
-    for (let i = head; i !== -1; i = next[i]) {
-      bucket.push(i);
+    for (let t = head; t !== -1; t = next[t]) {
+      bucket.push(comparable[t]);
     }
     sortInto(bucket, columns, c, sink);
     return;
   }
-  for (let i = head; i !== -1; i = next[i]) {
-    sink.out[sink.pos++] = i;
+  for (let t = head; t !== -1; t = next[t]) {
+    sink.out[sink.pos++] = comparable[t];
   }
 };
 
-const emitSpecials = (classes: number[][], columns: SortColumn[], c: number, first: boolean, sink: Sink) => {
-  if (first) {
-    for (let cls = classes.length - 1; cls >= 1; cls--) {
-      const bucket = classes[cls];
-      if (bucket !== undefined) {
-        emitBucket(bucket, columns, c, sink);
-      }
-    }
-  } else {
-    for (let cls = 1; cls < classes.length; cls++) {
-      const bucket = classes[cls];
-      if (bucket !== undefined) {
-        emitBucket(bucket, columns, c, sink);
-      }
-    }
+const emitSpecials = (classes: Classes, columns: SortColumn[], c: number, first: boolean, sink: Sink) => {
+  for (const bucket of classBuckets(classes, first)) {
+    emitBucket(bucket, columns, c, sink);
   }
 };
 
@@ -495,7 +532,7 @@ const sortSmall = (comparable: number[], columns: SortColumn[], c: number, sink:
 const sortNumbers = (comparable: number[], columns: SortColumn[], c: number, sink: Sink) => {
   const {keys, desc} = columns[c];
   const n = comparable.length;
-  const pool = poolAt(c, n);
+  const pool = poolAt(sink.frame, c, n);
   const values = pool.values;
   for (let t = 0; t < n; t++) {
     const v = keys[comparable[t]] as number;
@@ -525,25 +562,24 @@ const sortNumbers = (comparable: number[], columns: SortColumn[], c: number, sin
 const sortBuckets = (comparable: number[], columns: SortColumn[], c: number, strings: boolean, sink: Sink) => {
   const {keys, desc} = columns[c];
   const n = comparable.length;
-  const {next, tail} = poolAt(c, keys.length);
+  const {next, tail} = chainAt(sink.frame, c, n);
   const heads = new Map<unknown, number>();
   for (let t = 0; t < n; t++) {
-    const i = comparable[t];
-    const key = keys[i];
+    const key = keys[comparable[t]];
     const head = heads.get(key);
-    next[i] = -1;
+    next[t] = -1;
     if (head === undefined) {
-      heads.set(key, i);
-      tail[i] = i;
+      heads.set(key, t);
+      tail[t] = t;
     } else {
-      next[tail[head]] = i;
-      tail[head] = i;
+      next[tail[head]] = t;
+      tail[head] = t;
     }
   }
   const unique = Array.from(heads.keys());
   if (strings) {
     if (unique.length >= WINDOW_MIN) {
-      sortUniqueStrings(unique as string[]);
+      sortUniqueStrings(unique as string[], sink.frame);
     } else {
       (unique as string[]).sort();
     }
@@ -553,11 +589,11 @@ const sortBuckets = (comparable: number[], columns: SortColumn[], c: number, str
   const nextColumn = c + 1;
   if (desc) {
     for (let u = unique.length - 1; u >= 0; u--) {
-      emitChain(heads.get(unique[u])!, next, columns, nextColumn, sink);
+      emitChain(comparable, heads.get(unique[u])!, next, columns, nextColumn, sink);
     }
   } else {
     for (let u = 0; u < unique.length; u++) {
-      emitChain(heads.get(unique[u])!, next, columns, nextColumn, sink);
+      emitChain(comparable, heads.get(unique[u])!, next, columns, nextColumn, sink);
     }
   }
 };
@@ -603,7 +639,7 @@ const sortedRuns = (comparable: number[], columns: SortColumn[], c: number, sink
 const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sink): void => {
   const column = columns[c];
   const {keys, specialClass, specialsFirst} = column;
-  let classes: number[][] | null = null;
+  let classes: Classes | null = null;
   let comparable = indices;
   let numbers = false;
   let seen = false;
@@ -613,10 +649,15 @@ const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sin
     const cls = specialClass(key);
     if (cls !== 0) {
       if (classes === null) {
-        classes = [];
+        classes = new Map();
         comparable = indices.slice(0, t);
       }
-      (classes[cls] ??= []).push(i);
+      const bucket = classes.get(cls);
+      if (bucket === undefined) {
+        classes.set(cls, [i]);
+      } else {
+        bucket.push(i);
+      }
       continue;
     }
     if (classes !== null) {
@@ -641,12 +682,12 @@ const sortInto = (indices: number[], columns: SortColumn[], c: number, sink: Sin
       }
     } else if (n <= SMALL) {
       sortSmall(comparable, columns, c, sink);
-    } else if (sortedRuns(comparable, columns, c, sink)) {
-      return;
-    } else if (numbers && n >= RADIX_MIN) {
-      sortNumbers(comparable, columns, c, sink);
-    } else {
-      sortBuckets(comparable, columns, c, !numbers, sink);
+    } else if (!sortedRuns(comparable, columns, c, sink)) {
+      if (numbers && n >= RADIX_MIN) {
+        sortNumbers(comparable, columns, c, sink);
+      } else {
+        sortBuckets(comparable, columns, c, !numbers, sink);
+      }
     }
   }
   if (classes !== null && !specialsFirst) {
@@ -705,7 +746,10 @@ const tinyComparator = (columns: SortColumn[]) => {
 };
 
 const orderedCopy = <T>(items: readonly T[], column: SortColumn): T[] | null => {
-  const {keys, desc, specialClass} = column;
+  const {keys, desc, specialClass, compare} = column;
+  if (compare !== undefined) {
+    return null;
+  }
   const n = keys.length;
   const first = keys[0];
   const kind = typeof first;
@@ -843,7 +887,7 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
     return null;
   }
   const n = keys.length;
-  let classes: number[][] | null = null;
+  let classes: Classes | null = null;
   let kind = "";
   const comparable: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -853,7 +897,13 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
     }
     const cls = specialClass(key);
     if (cls !== 0) {
-      ((classes ??= [])[cls] ??= []).push(i);
+      classes ??= new Map();
+      const bucket = classes.get(cls);
+      if (bucket === undefined) {
+        classes.set(cls, [i]);
+      } else {
+        bucket.push(i);
+      }
       continue;
     }
     const type = typeof key;
@@ -937,23 +987,9 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
     if (classes === null) {
       return;
     }
-    if (specialsFirst) {
-      for (let cls = classes.length - 1; cls >= 1; cls--) {
-        const bucket = classes[cls];
-        if (bucket !== undefined) {
-          for (let t = 0; t < bucket.length; t++) {
-            result[pos++] = items[bucket[t]];
-          }
-        }
-      }
-    } else {
-      for (let cls = 1; cls < classes.length; cls++) {
-        const bucket = classes[cls];
-        if (bucket !== undefined) {
-          for (let t = 0; t < bucket.length; t++) {
-            result[pos++] = items[bucket[t]];
-          }
-        }
+    for (const bucket of classBuckets(classes, specialsFirst)) {
+      for (let t = 0; t < bucket.length; t++) {
+        result[pos++] = items[bucket[t]];
       }
     }
   };
@@ -972,7 +1008,7 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
 const tinyMulti = <T>(items: readonly T[], columns: SortColumn[]): T[] | null => {
   const first = columns[0];
   const {keys, desc, specialClass} = first;
-  if (first.compare !== undefined) {
+  if (first.compare !== undefined || !columns.every(isFastColumn)) {
     return null;
   }
   const n = keys.length;
@@ -1009,9 +1045,16 @@ const tinyMulti = <T>(items: readonly T[], columns: SortColumn[]): T[] | null =>
   return result;
 };
 
+const COLUMNS_MAX_RECURSIVE = 64;
+
 export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T[] => {
   const n = items.length;
-  if (n < 2) {
+  for (const {keys} of columns) {
+    if (keys.length !== n) {
+      throw new RangeError(`column has ${keys.length} keys for ${n} items`);
+    }
+  }
+  if (n < 2 || columns.length === 0) {
     return items.slice();
   }
   if (columns.length === 1) {
@@ -1037,12 +1080,16 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
     }
     return indices.sort(tinyComparator(columns)).map((i) => items[i]);
   }
-  if (!columns.every(isFastColumn)) {
+  if (columns.length > COLUMNS_MAX_RECURSIVE || !columns.every(isFastColumn)) {
     return indices.sort(comparatorFrom(columns, 0)).map((i) => items[i]);
   }
-  const sink = {out: new Uint32Array(n), pos: 0};
-  sortInto(indices, columns, 0, sink);
-  const out = sink.out;
+  const frame = acquireFrame();
+  const out = new Uint32Array(n);
+  try {
+    sortInto(indices, columns, 0, {out, pos: 0, frame});
+  } finally {
+    releaseFrame(frame);
+  }
   const result = new Array<T>(n);
   for (let i = 0; i < n; i++) {
     result[i] = items[out[i]];
@@ -1051,7 +1098,17 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
 };
 
 const toGetter = <T>(iteratee: SortIteratee<T>) =>
-  typeof iteratee === "function" ? iteratee : (item: T) => item[iteratee];
+  typeof iteratee === "function"
+    ? iteratee
+    : (item: T) => (item === null || item === undefined ? undefined : item[iteratee]);
+
+const keysOf = <T>(items: readonly T[], get: (item: T) => unknown): unknown[] => {
+  const keys = new Array<unknown>(items.length);
+  for (let i = 0; i < items.length; i++) {
+    keys[i] = get(items[i]);
+  }
+  return keys;
+};
 
 const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean, keys: unknown[]): T[] | null => {
   const n = items.length;
@@ -1116,7 +1173,7 @@ export const orderBy = <T>(
     items,
     getters.map((get, c) => {
       const desc = orders[c] === "desc";
-      return {keys: items.map(get), desc, specialClass: lodashSpecialClass, specialsFirst: desc};
+      return {keys: keysOf(items, get), desc, specialClass: lodashSpecialClass, specialsFirst: desc};
     })
   );
 };
@@ -1143,7 +1200,7 @@ export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[])
       const desc = order === "desc";
       const get = toGetter(by);
       return {
-        keys: items.map(get),
+        keys: keysOf(items, get),
         desc,
         specialClass: nullClass,
         specialsFirst: nulls === undefined ? desc : nulls === "first",
