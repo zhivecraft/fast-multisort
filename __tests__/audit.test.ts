@@ -111,6 +111,28 @@ describe("public contract", () => {
     expect(multisort(rows, [{by: get}])).toEqual([undefined, 1, 2]);
   });
 
+  it("returns a dense plain array on every path, already ordered input included", () => {
+    class Rows<T> extends Array<T> {}
+    const get = (x: number | undefined) => x ?? -1;
+    const expectPlain = (out: unknown[], n: number) => {
+      expect(Object.getPrototypeOf(out)).toBe(Array.prototype);
+      expect(Object.keys(out)).toHaveLength(n);
+    };
+    for (const n of [1, 3, 17, 200]) {
+      const rows: Array<number | undefined> = Array.from({length: n}, (_, i) => i);
+      delete rows[0];
+      const sub = Rows.from(Array.from({length: n}, (_, i) => i));
+      for (const input of [rows, sub]) {
+        expectPlain(orderBy(input, [get]), n);
+        expectPlain(orderBy(input, [get], ["desc"]), n);
+        expectPlain(multisort(input, [{by: get}]), n);
+        expectPlain(orderByColumns(input, [column(Array.from(input, get))]), n);
+        expectPlain(orderByColumns(input, []), n);
+        expectPlain(multisort(input, []), n);
+      }
+    }
+  });
+
   it("adding a constant last criterion never changes the result", () => {
     const key = fc.oneof(fc.integer({min: -3, max: 3}), fc.constantFrom<unknown>(null, undefined, "a", "b", NaN));
     fc.assert(
