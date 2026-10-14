@@ -304,3 +304,15 @@ describe("special keys are never compared by value", () => {
     expect(orderByColumns(keys, [column(keys, {specialClass})]).at(-1)).toBe(opaque);
   });
 });
+
+describe("reversed columns", () => {
+  it("does not reverse a strictly descending column that later holds a non-number", () => {
+    for (const n of [3, 20, 100]) {
+      for (const tail of [undefined, null, "x", NaN]) {
+        const rows = [...Array.from({length: n}, (_, i) => ({id: i, v: n - i})), {id: n, v: tail}];
+        expect(orderBy(rows, ["v"]).map((r) => r.id)).toEqual(lodashOrderBy(rows, ["v"]).map((r) => r.id));
+        expect(orderBy(rows, ["v"], ["desc"]).map((r) => r.id)).toEqual(lodashOrderBy(rows, ["v"], ["desc"]).map((r) => r.id));
+      }
+    }
+  });
+});
