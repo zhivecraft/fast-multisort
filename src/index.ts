@@ -921,49 +921,55 @@ const plainComparator = (columns: SortColumn[]) => {
   };
 };
 
-const orderedCopy = <T>(items: readonly T[], column: SortColumn): T[] | null => {
-  const {keys, desc, specialClass, compare} = column;
-  if (compare !== undefined) {
-    return null;
-  }
+const orderedColumn = <T>(items: readonly T[], {keys, desc, specialClass, compare}: SortColumn): T[] | null => {
   const n = keys.length;
   const first = keys[0];
   const kind = typeof first;
-  if ((kind !== "number" && kind !== "string") || specialClass(first) !== 0 || Number.isNaN(first)) {
+  if (compare !== undefined || (kind !== "number" && kind !== "string") || Number.isNaN(first) || specialClass(first) !== 0) {
     return null;
   }
+  const custom = specialClass !== lodashSpecialClass && specialClass !== nullClass;
   let nonDecreasing = true;
   let nonIncreasing = true;
   let strict = true;
+  let crowded = false;
+  const runs = [0];
+  const limit = n / NEARLY;
   for (let i = 1; i < n; i++) {
-    const key = keys[i];
-    if (typeof key !== kind || specialClass(key) !== 0 || Number.isNaN(key)) {
+    const prev = keys[i - 1];
+    const next = keys[i];
+    if ((kind === "number" ? typeof next !== "number" || Number.isNaN(next) : typeof next !== "string") || (custom && specialClass(next) !== 0)) {
       return null;
     }
-    const prev = keys[i - 1] as number;
-    const next = key as number;
-    if (prev > next) {
+    if (kind === "number" ? (prev as number) > (next as number) : (prev as string) > (next as string)) {
       nonDecreasing = false;
-    } else if (prev < next) {
+      if (!desc) {
+        crowded ||= addRun(runs, i, limit);
+      }
+    } else if (kind === "number" ? (prev as number) < (next as number) : (prev as string) < (next as string)) {
       nonIncreasing = false;
+      if (desc) {
+        crowded ||= addRun(runs, i, limit);
+      }
     } else {
       strict = false;
     }
-    if (!nonDecreasing && !nonIncreasing) {
+    if (crowded && !(strict && (desc ? nonDecreasing : nonIncreasing))) {
       return null;
     }
   }
   if (desc ? nonIncreasing : nonDecreasing) {
     return items.slice();
   }
-  if (strict) {
+  if (crowded) {
     const result = new Array<T>(n);
     for (let i = 0; i < n; i++) {
       result[i] = items[n - 1 - i];
     }
     return result;
   }
-  return null;
+  runs.push(n);
+  return gather(items, mergeRuns(plainColumn(keys, desc), runs, n));
 };
 
 const SAMPLE = 16;
@@ -1234,7 +1240,7 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
     return items.slice();
   }
   if (columns.length === 1) {
-    const ordered = orderedCopy(items, columns[0]);
+    const ordered = orderedColumn(items, columns[0]);
     if (ordered !== null) {
       return ordered;
     }
@@ -1296,62 +1302,6 @@ const addRun = (runs: number[], at: number, limit: number) => {
   return false;
 };
 
-const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean, keys: unknown[]): T[] | null => {
-  const n = items.length;
-  let prev = get(items[0]);
-  keys[0] = prev;
-  const kind = typeof prev;
-  let plain = (kind === "number" || kind === "string") && !Number.isNaN(prev);
-  let nonDecreasing = true;
-  let nonIncreasing = true;
-  let strict = true;
-  let crowded = false;
-  const runs = [0];
-  const limit = n / NEARLY;
-  for (let i = 1; i < n; i++) {
-    const next = get(items[i]);
-    keys[i] = next;
-    if (plain) {
-      if (typeof next !== kind || Number.isNaN(next)) {
-        plain = false;
-      } else {
-        if ((prev as number) > (next as number)) {
-          nonDecreasing = false;
-          if (!desc) {
-            crowded ||= addRun(runs, i, limit);
-          }
-        } else if ((prev as number) < (next as number)) {
-          nonIncreasing = false;
-          if (desc) {
-            crowded ||= addRun(runs, i, limit);
-          }
-        } else {
-          strict = false;
-        }
-        if (crowded) {
-          plain = strict && (desc ? nonDecreasing : nonIncreasing);
-        }
-      }
-    }
-    prev = next;
-  }
-  if (!plain) {
-    return null;
-  }
-  if (desc ? nonIncreasing : nonDecreasing) {
-    return items.slice();
-  }
-  if (crowded) {
-    const result = new Array<T>(n);
-    for (let i = 0; i < n; i++) {
-      result[i] = items[n - 1 - i];
-    }
-    return result;
-  }
-  runs.push(n);
-  return gather(items, mergeRuns(plainColumn(keys, desc), runs, n));
-};
-
 const DIRECT = 16;
 
 const lodashChain = (keys: unknown[][], descs: boolean[]) => (a: number, b: number) => {
@@ -1401,15 +1351,11 @@ export const orderBy = <T>(
   }
   if (iteratees.length === 1) {
     const desc = orders[0] === "desc";
-    const keys = new Array<unknown>(items.length);
-    const ordered = orderedByGetter(items, toGetter(iteratees[0]), desc, keys);
-    if (ordered !== null) {
-      return ordered;
+    const column = {keys: keysOf(items, toGetter(iteratees[0])), desc, specialClass: lodashSpecialClass, specialsFirst: desc};
+    if (items.length > DIRECT) {
+      return orderByColumns(items, [column]);
     }
-    if (items.length <= DIRECT) {
-      return sortByKeys(items, lodashChain([keys], [desc]));
-    }
-    return orderByColumns(items, [{keys, desc, specialClass: lodashSpecialClass, specialsFirst: desc}]);
+    return orderedColumn(items, column) ?? sortByKeys(items, lodashChain([column.keys], [desc]));
   }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   if (items.length <= DIRECT) {
