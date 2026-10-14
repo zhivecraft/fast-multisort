@@ -1,4 +1,5 @@
 import {execFileSync} from "node:child_process";
+import fs from "node:fs";
 import v8 from "node:v8";
 
 import {cases, libraries, makeRows} from "./suite.js";
@@ -6,24 +7,32 @@ import {cases, libraries, makeRows} from "./suite.js";
 const [, , caseName, libName, size] = process.argv;
 if (libName !== undefined) {
   const rows = makeRows(Number(size));
-  const c = cases.find((x) => x.name === caseName);
-  const fn = libraries(rows, c)[libName];
+  const fn = libraries(rows, cases.find((x) => x.name === caseName))[libName];
   global.gc();
   const before = process.memoryUsage().heapUsed;
-  const peakBefore = v8.getHeapStatistics().total_heap_size;
-  const kept = fn();
-  const peak = v8.getHeapStatistics().total_heap_size;
+  const reserved = v8.getHeapStatistics().total_heap_size;
+  let kept = fn();
+  const grown = v8.getHeapStatistics().total_heap_size - reserved;
   global.gc();
-  const after = process.memoryUsage().heapUsed;
-  console.log(JSON.stringify({retained: after - before, grown: peak - peakBefore, length: kept.length}));
+  const retained = process.memoryUsage().heapUsed - before;
+  for (let i = 0; i < 20; i++) {
+    kept = fn();
+  }
+  global.gc();
+  const leaked = process.memoryUsage().heapUsed - before - retained;
+  console.log(JSON.stringify({grown, retained, leaked, length: kept.length}));
 } else {
   const n = Number(caseName ?? 1_000_000);
-  for (const c of cases.filter((x) => x.props.length > 1 || x.props[0] === "name")) {
-    console.log(`\n${n.toLocaleString("en-US")} rows, ${c.name}: heap growth during the sort / retained by the result`);
+  const rows = [];
+  for (const c of cases.filter((x) => x.props.length > 1 || ["name", "moved"].includes(x.props[0]))) {
+    console.log(`\n${n.toLocaleString("en-US")} rows, ${c.name}: heap growth during one sort / retained by the result / left after 20 more sorts`);
     for (const name of Object.keys(libraries(makeRows(10), c))) {
       const out = execFileSync(process.execPath, ["--expose-gc", "--max-old-space-size=32768", "benchmark/memory.js", c.name, name, String(n)], {encoding: "utf8"});
-      const {grown, retained} = JSON.parse(out.trim().split("\n").at(-1));
-      console.log(`${name.padEnd(42)} ${(grown / 2 ** 20).toFixed(0).padStart(6)} MB  ${(retained / 2 ** 20).toFixed(0).padStart(6)} MB`);
+      const {grown, retained, leaked} = JSON.parse(out.trim().split("\n").at(-1));
+      const mb = (x) => (x / 2 ** 20).toFixed(1).padStart(7);
+      console.log(`${name.padEnd(42)} ${mb(grown)} MB ${mb(retained)} MB ${mb(leaked)} MB`);
+      rows.push({size: n, name: c.name, library: name, grown, retained, leaked});
     }
   }
+  fs.writeFileSync("benchmark/memory.json", `${JSON.stringify(rows, null, 1)}\n`);
 }
