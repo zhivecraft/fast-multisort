@@ -1399,8 +1399,20 @@ export const orderBy = <T>(
   if (items.length < 2) {
     return items.slice();
   }
+  if (iteratees.length === 1) {
+    const desc = orders[0] === "desc";
+    const keys = new Array<unknown>(items.length);
+    const ordered = orderedByGetter(items, toGetter(iteratees[0]), desc, keys);
+    if (ordered !== null) {
+      return ordered;
+    }
+    if (items.length <= DIRECT) {
+      return sortByKeys(items, lodashChain([keys], [desc]));
+    }
+    return orderByColumns(items, [{keys, desc, specialClass: lodashSpecialClass, specialsFirst: desc}]);
+  }
+  const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   if (items.length <= DIRECT) {
-    const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
     return sortByKeys(
       items,
       lodashChain(
@@ -1409,16 +1421,6 @@ export const orderBy = <T>(
       )
     );
   }
-  if (iteratees.length === 1) {
-    const desc = orders[0] === "desc";
-    const keys = new Array<unknown>(items.length);
-    const ordered = orderedByGetter(items, toGetter(iteratees[0]), desc, keys);
-    if (ordered !== null) {
-      return ordered;
-    }
-    return orderByColumns(items, [{keys, desc, specialClass: lodashSpecialClass, specialsFirst: desc}]);
-  }
-  const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   return orderByColumns(
     items,
     getters.map((get, c) => {
