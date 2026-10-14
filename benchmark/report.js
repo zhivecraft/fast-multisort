@@ -35,10 +35,7 @@ if (fs.existsSync("benchmark/browsers.md")) {
   }
 }
 const git = (...args) => execFileSync("git", args, {encoding: "utf8"}).trim();
-const tests = fs
-  .readdirSync("__tests__")
-  .map((file) => fs.readFileSync(`__tests__/${file}`, "utf8").split(/\n\s+it\(/).length - 1)
-  .reduce((a, b) => a + b, 0);
+const vitest = JSON.parse(execFileSync("node_modules/.bin/vitest", ["run", "--reporter=json"], {encoding: "utf8"}));
 const data = {
   engines,
   machine: results.trim().split("\n").at(-1),
@@ -47,12 +44,13 @@ const data = {
   head: git("rev-parse", "--short", "HEAD"),
   date: git("log", "-1", "--format=%cs"),
   lines: fs.readFileSync("src/index.ts", "utf8").split("\n").length,
-  tests,
-  testFiles: fs.readdirSync("__tests__").length,
+  tests: vitest.numPassedTests,
+  testFiles: vitest.testResults.length,
   ci: process.env.CI_STATUS ?? "not checked",
 };
 
-const html = `<title>fast-multisort release review</title>
+const html = `<meta charset="utf-8">
+<title>fast-multisort release review</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* layout: one reading column; status grid, then evidence sections; the explorer switches engines with tabs */
@@ -71,8 +69,8 @@ const html = `<title>fast-multisort release review</title>
 }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; padding-block: 32px 64px; padding-inline: 16px; }
-main { max-width: 1120px; margin-inline: auto; display: grid; gap: 48px; }
-header, section { display: grid; gap: 14px; min-width: 0; }
+main { max-width: 1120px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; }
+header, section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
 h1 { font-size: 1.75rem; line-height: 1.2; margin: 0; text-wrap: balance; }
 h2 { font-size: 1.2rem; margin: 0; text-wrap: balance; }
 h3 { font-size: 0.8rem; margin: 0; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -176,7 +174,7 @@ for (const e of D.engines) {
 const totalCases = D.engines.reduce((a, e) => a + e.entries.length, 0);
 const fromThousand = losses.filter((l) => l.size >= 1000);
 const libraryLosses = losses.filter((l) => !l.by.startsWith("inline"));
-$("verdict").textContent = "Ready to publish. Every finding of the correctness audit is fixed and pinned by a test, there are no leaks, and fast-multisort is the fastest entry in " + (totalCases - losses.length) + " of " + totalCases + " engine-cases. It loses " + libraryLosses.length + " of them to another library, all at one row, and " + (losses.length - libraryLosses.length) + " to a hand-written inline comparator, " + fromThousand.length + " of those at 1,000 rows or more.";
+$("verdict").textContent = "Ready to publish. Every finding of the correctness audit is fixed and pinned by a test, there are no leaks, and fast-multisort is the fastest entry in " + (totalCases - losses.length) + " of " + totalCases + " engine-cases. It loses " + libraryLosses.length + " of them to another library, all at " + [...new Set(libraryLosses.map((l) => size(l.size)))].join(" or ") + " row" + (libraryLosses.every((l) => l.size === 1) ? "" : "s") + ", and " + (losses.length - libraryLosses.length) + " to a hand-written inline comparator, " + fromThousand.length + " of those at 1,000 rows or more.";
 $("meta").textContent = "commit " + D.head + " · " + D.date + " · " + D.machine;
 
 const card = (title, state, body) => '<div class="card"><div class="top"><strong>' + title + '</strong><span class="pill ' + state + '">' + (state === "done" ? "Done" : "Caveat") + "</span></div><p>" + body + "</p></div>";
@@ -192,7 +190,7 @@ $("status").innerHTML = [
   card("Fibery fit", "done", "orderByColumns takes the columns fibery-ui builds (lower-cased text, decimal strings under a custom comparator, nullable nested dates, nulls first or last); a property test mirrors that contract. Re-sorting an ordered list after an edit now merges its runs instead of a full sort. Needs Array.prototype.toSorted, which fibery-ui already calls in 11 production modules."),
   card("Performance", "done", "Median over every node case: " + bestLibrary.n + ", the closest library, is " + fmt(bestLibrary.med) + " slower; lodash.orderBy " + fmt(median(nodeStats("lodash.orderBy"))) + ". Fixed culprits: an ordered list with one row moved re-sorts 3.4× faster by merging its runs; the benchmark no longer slows every library with one shared getter, and engines run one after another with interleaved samples (run together they inflated large-input times up to 4.5×). Remaining losses, listed below: the hand-written inline comparator at 100 rows and below and on already ordered or one-row-moved input (every size in V8); libraries only at 1 and 10 rows, where a sort takes a few hundred nanoseconds."),
   card("Memory", D.memory.length === 0 ? "caveat" : leaks.length === 0 ? "done" : "caveat", D.memory.length === 0 ? "Memory run not included in this build of the report." : leaks.length === 0 ? "No library leaks: heap after 20 repeated 1M-row sorts and a GC is back at baseline for all " + new Set(D.memory.map((m) => m.library)).size + " entries. Scratch buffers live in a per-call frame; large ones are not kept between calls." : leaks.length + " entries left more than 1 MB after 20 sorts; see the table."),
-  card("Benchmark", "done", D.engines.map((e) => e.label + " " + e.version).join(", ") + ". " + node.entries.length + " cases per engine (9 key shapes, 1 row to 1M), " + new Set(node.entries.flatMap((e) => e.tasks.map((t) => t.name))).size + " entries, every result checked against lodash before timing; the run aborts if fast-multisort's own order differs."),
+  card("Benchmark", "done", D.engines.map((e) => e.label + " " + e.version).join(", ") + ". " + D.engines.map((e) => e.entries.length + " cases in " + e.label).join(", ") + " (9 key shapes, 1 row to 1M, Firefox to 100k), " + new Set(node.entries.flatMap((e) => e.tasks.map((t) => t.name))).size + " entries, every result checked against lodash before timing; the run aborts if fast-multisort's own order differs."),
   card("Release", D.ci.startsWith("success") ? "done" : "caveat", "Pushed to github.com/zhivecraft/fast-multisort at " + D.head + "; CI: " + esc(D.ci) + ". " + D.lines + " lines in src/index.ts. npm publish is yours to run; the Fibery copy in packages/helpers/src/sort.ts still has two audit bugs and should be replaced by the package, not patched."),
 ].join("");
 
