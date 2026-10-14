@@ -59,7 +59,7 @@ Specials of the same class keep their input order; different classes are ordered
 - Empty rules return a copy in input order.
 - A custom `compare` is always honoured; a result that is not below or above zero (`NaN` included) is a tie and falls through to the next column.
 - Sorting is safe to start from inside an iteratee, `specialClass` or `compare`: every call owns its scratch memory.
-- Every path returns the same elements, once each, and the result never depends on which internal path ran.
+- Every path returns the same elements, once each, and each iteratee is called exactly once per item. For a consistent comparator (the built-in ones, or a `compare` that is a total order) the result never depends on which internal path ran; a `compare` that contradicts itself, for example by returning `NaN` for some pairs, has no single right answer and may order differently at different sizes.
 
 ## Semantics kept from lodash
 

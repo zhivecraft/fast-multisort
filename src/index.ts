@@ -552,9 +552,13 @@ const roughlyOrdered = ({keys, desc, compare}: SortColumn, n: number, limit: num
   }
   let descents = 0;
   for (let i = 1; i < n; i++) {
-    const prev = keys[i - 1] as number;
-    const next = keys[i] as number;
-    if ((desc ? prev < next : prev > next) && ++descents > limit) {
+    const prev = keys[i - 1];
+    const next = keys[i];
+    const kind = typeof prev;
+    if (kind !== typeof next || (kind !== "number" && kind !== "string")) {
+      continue;
+    }
+    if ((desc ? (prev as number) < (next as number) : (prev as number) > (next as number)) && ++descents > limit) {
       return false;
     }
   }
@@ -1348,40 +1352,42 @@ const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc
 
 const DIRECT = 16;
 
-type Getter<T> = (item: T) => unknown;
+const lodashChain = (keys: unknown[][], descs: boolean[]) => (a: number, b: number) => {
+  for (let c = 0; c < keys.length; c++) {
+    const result = compareAscending(keys[c][a], keys[c][b]);
+    if (result !== 0) {
+      return descs[c] ? -result : result;
+    }
+  }
+  return 0;
+};
 
-const lodashChain =
-  <T>(getters: Getter<T>[], descs: boolean[]) =>
-  (a: T, b: T) => {
-    for (let c = 0; c < getters.length; c++) {
-      const result = compareAscending(getters[c](a), getters[c](b));
+const nullsChain = (keys: unknown[][], descs: boolean[], nullsFirst: boolean[]) => (a: number, b: number) => {
+  for (let c = 0; c < keys.length; c++) {
+    const x = keys[c][a];
+    const y = keys[c][b];
+    const xNull = x === null || x === undefined;
+    const yNull = y === null || y === undefined;
+    if (xNull !== yNull) {
+      return xNull === nullsFirst[c] ? -1 : 1;
+    }
+    if (!xNull) {
+      const result = compareAscending(x, y);
       if (result !== 0) {
         return descs[c] ? -result : result;
       }
     }
-    return 0;
-  };
+  }
+  return 0;
+};
 
-const nullsChain =
-  <T>(getters: Getter<T>[], descs: boolean[], nullsFirst: boolean[]) =>
-  (a: T, b: T) => {
-    for (let c = 0; c < getters.length; c++) {
-      const x = getters[c](a);
-      const y = getters[c](b);
-      const xNull = x === null || x === undefined;
-      const yNull = y === null || y === undefined;
-      if (xNull !== yNull) {
-        return xNull === nullsFirst[c] ? -1 : 1;
-      }
-      if (!xNull) {
-        const result = compareAscending(x, y);
-        if (result !== 0) {
-          return descs[c] ? -result : result;
-        }
-      }
-    }
-    return 0;
-  };
+const sortByKeys = <T>(items: readonly T[], compare: Compare) => {
+  const indices = new Array<number>(items.length);
+  for (let i = 0; i < items.length; i++) {
+    indices[i] = i;
+  }
+  return gather(items, indices.sort(compare));
+};
 
 export const orderBy = <T>(
   items: readonly T[],
@@ -1391,11 +1397,12 @@ export const orderBy = <T>(
   if (items.length < 2) {
     return items.slice();
   }
-  if (items.length <= DIRECT && !items.includes(undefined as T)) {
+  if (items.length <= DIRECT) {
     const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
-    return items.toSorted(
+    return sortByKeys(
+      items,
       lodashChain(
-        getters,
+        getters.map((get) => keysOf(items, get)),
         getters.map((_, c) => orders[c] === "desc")
       )
     );
@@ -1438,11 +1445,12 @@ export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[])
   if (items.length < 2) {
     return items.slice();
   }
-  if (items.length <= DIRECT && !items.includes(undefined as T)) {
+  if (items.length <= DIRECT) {
     const descs = rules.map(({order}) => order === "desc");
-    return items.toSorted(
+    return sortByKeys(
+      items,
       nullsChain(
-        rules.map(({by}) => toGetter(by)),
+        rules.map(({by}) => keysOf(items, toGetter(by))),
         descs,
         rules.map(({nulls}, c) => (nulls === undefined ? descs[c] : nulls === "first"))
       )
