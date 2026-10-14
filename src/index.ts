@@ -586,6 +586,14 @@ const gather = <T>(items: readonly T[], order: ArrayLike<number>) => {
   return result;
 };
 
+const copyOf = <T>(items: readonly T[]) => {
+  const result = new Array<T>(items.length);
+  for (let i = 0; i < items.length; i++) {
+    result[i] = items[i];
+  }
+  return result;
+};
+
 const emitBucket =(bucket: number[], columns: SortColumn[], c: number, sink: Sink): void => {
   if (c < columns.length && bucket.length > 1) {
     sortInto(bucket, columns, c, sink);
@@ -960,7 +968,7 @@ const orderedColumn = <T>(items: readonly T[], {keys, desc, specialClass, compar
     prev = next;
   }
   if (desc ? nonIncreasing : nonDecreasing) {
-    return items.slice();
+    return copyOf(items);
   }
   if (crowded) {
     const result = new Array<T>(n);
@@ -1258,7 +1266,7 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
     }
   }
   if (n < 2 || columns.length === 0) {
-    return items.slice();
+    return copyOf(items);
   }
   if (columns.length === 1) {
     const ordered = orderedColumn(items, columns[0]);
@@ -1392,7 +1400,7 @@ export const orderBy = <T>(
   orders: readonly SortOrder[] = []
 ): T[] => {
   if (items.length < 2) {
-    return items.slice();
+    return copyOf(items);
   }
   if (iteratees.length === 1) {
     const desc = orders[0] === "desc";
@@ -1441,7 +1449,7 @@ const nullClass = (key: unknown): number => (key === null || key === undefined ?
 
 export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[]): T[] => {
   if (items.length < 2) {
-    return items.slice();
+    return copyOf(items);
   }
   const columns = rules.map(({order, nulls}) => {
     const desc = order === "desc";
