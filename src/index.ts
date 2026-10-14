@@ -921,12 +921,12 @@ const plainComparator = (columns: SortColumn[]) => {
   };
 };
 
-const orderedColumn = <T>(items: readonly T[], {keys, desc, specialClass, compare}: SortColumn): T[] | null => {
-  const n = keys.length;
-  const first = keys[0];
+const orderedColumn = <T>(items: readonly T[], {keys, desc, specialClass, compare}: SortColumn, get?: (item: T) => unknown): T[] | null => {
+  const n = items.length;
+  const first = get === undefined ? keys[0] : (keys[0] = get(items[0]));
   const kind = typeof first;
   if (compare !== undefined || (kind !== "number" && kind !== "string") || Number.isNaN(first) || specialClass(first) !== 0) {
-    return null;
+    return get === undefined ? null : keysFrom(items, get, keys, 1);
   }
   const custom = specialClass !== lodashSpecialClass && specialClass !== nullClass;
   let nonDecreasing = true;
@@ -935,11 +935,11 @@ const orderedColumn = <T>(items: readonly T[], {keys, desc, specialClass, compar
   let crowded = false;
   const runs = [0];
   const limit = n / NEARLY;
+  let prev = first;
   for (let i = 1; i < n; i++) {
-    const prev = keys[i - 1];
-    const next = keys[i];
+    const next = get === undefined ? keys[i] : (keys[i] = get(items[i]));
     if ((kind === "number" ? typeof next !== "number" || Number.isNaN(next) : typeof next !== "string") || (custom && specialClass(next) !== 0)) {
-      return null;
+      return get === undefined ? null : keysFrom(items, get, keys, i + 1);
     }
     if (kind === "number" ? (prev as number) > (next as number) : (prev as string) > (next as string)) {
       nonDecreasing = false;
@@ -955,8 +955,9 @@ const orderedColumn = <T>(items: readonly T[], {keys, desc, specialClass, compar
       strict = false;
     }
     if (crowded && !(strict && (desc ? nonDecreasing : nonIncreasing))) {
-      return null;
+      return get === undefined ? null : keysFrom(items, get, keys, i + 1);
     }
+    prev = next;
   }
   if (desc ? nonIncreasing : nonDecreasing) {
     return items.slice();
@@ -1286,11 +1287,16 @@ const toGetter = <T>(iteratee: SortIteratee<T>) =>
     ? iteratee
     : (item: T) => (item === null || item === undefined ? undefined : item[iteratee]);
 
-const keysOf = <T>(items: readonly T[], get: (item: T) => unknown): unknown[] => {
-  const keys = new Array<unknown>(items.length);
-  for (let i = 0; i < items.length; i++) {
+const keysFrom = <T>(items: readonly T[], get: (item: T) => unknown, keys: unknown[], from: number) => {
+  for (let i = from; i < items.length; i++) {
     keys[i] = get(items[i]);
   }
+  return null;
+};
+
+const keysOf = <T>(items: readonly T[], get: (item: T) => unknown): unknown[] => {
+  const keys = new Array<unknown>(items.length);
+  keysFrom(items, get, keys, 0);
   return keys;
 };
 
@@ -1351,11 +1357,12 @@ export const orderBy = <T>(
   }
   if (iteratees.length === 1) {
     const desc = orders[0] === "desc";
-    const column = {keys: keysOf(items, toGetter(iteratees[0])), desc, specialClass: lodashSpecialClass, specialsFirst: desc};
-    if (items.length > DIRECT) {
-      return orderByColumns(items, [column]);
+    const column = {keys: new Array<unknown>(items.length), desc, specialClass: lodashSpecialClass, specialsFirst: desc};
+    const ordered = orderedColumn(items, column, toGetter(iteratees[0]));
+    if (ordered !== null) {
+      return ordered;
     }
-    return orderedColumn(items, column) ?? sortByKeys(items, lodashChain([column.keys], [desc]));
+    return items.length > DIRECT ? orderByColumns(items, [column]) : sortByKeys(items, lodashChain([column.keys], [desc]));
   }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   if (items.length <= DIRECT) {
