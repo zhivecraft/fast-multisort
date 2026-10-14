@@ -1443,30 +1443,31 @@ export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[])
   if (items.length < 2) {
     return items.slice();
   }
-  if (items.length <= DIRECT) {
-    const descs = rules.map(({order}) => order === "desc");
-    const keys = rules.map(({by}) => keysOf(items, toGetter(by)));
-    return sortByKeys(
-      items,
-      keys,
-      nullsChain(
-        keys,
-        descs,
-        rules.map(({nulls}, c) => (nulls === undefined ? descs[c] : nulls === "first"))
-      )
-    );
+  const columns = rules.map(({order, nulls}) => {
+    const desc = order === "desc";
+    return {keys: new Array<unknown>(items.length), desc, specialClass: nullClass, specialsFirst: nulls === undefined ? desc : nulls === "first"};
+  });
+  if (columns.length === 1) {
+    const ordered = orderedColumn(items, columns[0], toGetter(rules[0].by));
+    if (ordered !== null) {
+      return ordered;
+    }
+  } else {
+    for (let c = 0; c < columns.length; c++) {
+      keysFrom(items, toGetter(rules[c].by), columns[c].keys, 0);
+    }
   }
-  return orderByColumns(
+  if (items.length > DIRECT) {
+    return orderByColumns(items, columns);
+  }
+  const keys = columns.map((column) => column.keys);
+  return sortByKeys(
     items,
-    rules.map(({by, order, nulls}) => {
-      const desc = order === "desc";
-      const get = toGetter(by);
-      return {
-        keys: keysOf(items, get),
-        desc,
-        specialClass: nullClass,
-        specialsFirst: nulls === undefined ? desc : nulls === "first",
-      };
-    })
+    keys,
+    nullsChain(
+      keys,
+      columns.map((column) => column.desc),
+      columns.map((column) => column.specialsFirst)
+    )
   );
 };
