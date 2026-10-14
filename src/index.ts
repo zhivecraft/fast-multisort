@@ -1314,21 +1314,23 @@ const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc
     if (plain) {
       if (typeof next !== kind || Number.isNaN(next)) {
         plain = false;
-      } else if ((prev as number) > (next as number)) {
-        nonDecreasing = false;
-        if (!desc) {
-          crowded ||= addRun(runs, i, limit);
-        }
-      } else if ((prev as number) < (next as number)) {
-        nonIncreasing = false;
-        if (desc) {
-          crowded ||= addRun(runs, i, limit);
-        }
       } else {
-        strict = false;
-      }
-      if (crowded) {
-        plain = strict && (desc ? nonDecreasing : nonIncreasing);
+        if ((prev as number) > (next as number)) {
+          nonDecreasing = false;
+          if (!desc) {
+            crowded ||= addRun(runs, i, limit);
+          }
+        } else if ((prev as number) < (next as number)) {
+          nonIncreasing = false;
+          if (desc) {
+            crowded ||= addRun(runs, i, limit);
+          }
+        } else {
+          strict = false;
+        }
+        if (crowded) {
+          plain = strict && (desc ? nonDecreasing : nonIncreasing);
+        }
       }
     }
     prev = next;
