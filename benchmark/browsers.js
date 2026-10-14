@@ -41,17 +41,17 @@ const engines = [
 
 const only = process.env.ENGINES?.split(",");
 const previous = fs.existsSync("benchmark/browsers.md") ? fs.readFileSync("benchmark/browsers.md", "utf8").split(/^(?=### )/m).filter((b) => b.trim()) : [];
-const sections = await Promise.all(
-  engines.map(async ([label, engine]) => {
-    if (only !== undefined && !only.includes(label)) {
-      return previous.find((block) => block.startsWith(`### ${label} `))?.trim() ?? null;
-    }
-    const outcome = await engine().catch((error) => {
-      console.error(`${label} did not run: ${String(error.message).split("\n")[0]}`);
-      return null;
-    });
-    return outcome === null ? null : `### ${label} ${outcome.version}\n${outcome.markdown}`;
-  })
-).then((all) => all.filter((section) => section !== null));
-fs.writeFileSync("benchmark/browsers.md", `${sections.join("\n\n")}\n`);
-console.log(sections.join("\n\n"));
+const sections = [];
+for (const [label, engine] of engines) {
+  if (only !== undefined && !only.includes(label)) {
+    sections.push(previous.find((block) => block.startsWith(`### ${label} `))?.trim());
+    continue;
+  }
+  const outcome = await engine().catch((error) => {
+    console.error(`${label} did not run: ${String(error.message).split("\n")[0]}`);
+  });
+  sections.push(outcome && `### ${label} ${outcome.version}\n${outcome.markdown}`);
+}
+const output = sections.filter(Boolean).join("\n\n");
+fs.writeFileSync("benchmark/browsers.md", `${output}\n`);
+console.log(output);

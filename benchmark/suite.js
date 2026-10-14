@@ -104,33 +104,37 @@ export const libraries = (rows, c) => {
 
 let keep;
 
-const measure = (fn) => {
-  let reps = 1;
-  let batch = 0;
-  for (;;) {
-    const start = performance.now();
-    for (let i = 0; i < reps; i++) {
-      keep = fn();
+const batch = (fn, reps) => {
+  const start = performance.now();
+  for (let i = 0; i < reps; i++) {
+    keep = fn();
+  }
+  return (performance.now() - start) / reps;
+};
+
+const calibrated = (fn) => {
+  for (let reps = 1; ; reps *= 2) {
+    const ms = batch(fn, reps);
+    if (ms * reps >= 20 || reps >= 1e7) {
+      return {fn, reps, samples: [ms], rounds: ms * reps >= 500 ? 2 : 5};
     }
-    batch = performance.now() - start;
-    if (batch >= 20 || reps >= 1e7) {
+  }
+};
+
+const measure = (fns) => {
+  const tasks = fns.map(calibrated);
+  const deadline = performance.now() + 500 * tasks.length;
+  for (;;) {
+    const due = tasks.filter((t) => t.samples.length < t.rounds || (t.rounds === 5 && t.samples.length < 25 && performance.now() < deadline));
+    if (due.length === 0) {
       break;
     }
-    reps *= 2;
-  }
-  const rounds = batch >= 500 ? 2 : 5;
-  const samples = [batch / reps];
-  const deadline = performance.now() + 500;
-  do {
-    const start = performance.now();
-    for (let i = 0; i < reps; i++) {
-      keep = fn();
+    for (const t of due) {
+      t.samples.push(batch(t.fn, t.reps));
     }
-    samples.push((performance.now() - start) / reps);
-  } while (samples.length < rounds || (performance.now() < deadline && samples.length < 25));
-  samples.sort((a, b) => a - b);
+  }
   globalThis.__keep = keep;
-  return samples[samples.length >> 1];
+  return tasks.map((t) => t.samples.sort((a, b) => a - b)[t.samples.length >> 1]);
 };
 
 const permutation = (sorted, rows) => {
@@ -144,8 +148,7 @@ export const run = async (onCase = () => {}, only = sizes) => {
     const rows = makeRows(size);
     for (const c of cases) {
       const reference = permutation(lodashOrderBy(rows, c.getters, c.orders), rows);
-      const timed = [];
-      for (const [name, fn] of Object.entries(libraries(rows, c))) {
+      const checked = Object.entries(libraries(rows, c)).map(([name, fn]) => {
         let status = "";
         try {
           if (permutation(fn(), rows) !== reference) {
@@ -157,8 +160,10 @@ export const run = async (onCase = () => {}, only = sizes) => {
         if (name === "fast-multisort" && status !== "") {
           throw new Error(`fast-multisort${status} on ${size} rows, ${c.name}`);
         }
-        timed.push({name: `${name}${status}`, ms: measure(fn)});
-      }
+        return {name: `${name}${status}`, fn};
+      });
+      const ms = measure(checked.map((t) => t.fn));
+      const timed = checked.map((t, i) => ({name: t.name, ms: ms[i]}));
       timed.sort((a, b) => a.ms - b.ms);
       const ours = timed.find((t) => t.name === "fast-multisort").ms;
       const entry = {
