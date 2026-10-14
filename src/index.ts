@@ -988,6 +988,26 @@ const sampleHasDuplicates = (keys: unknown[], comparable: number[]) => {
   return false;
 };
 
+const sortRange = (order: number[], from: number, to: number, compare: Compare) => {
+  for (let i = from + 1; i < to; i++) {
+    const v = order[i];
+    let lo = from;
+    let hi = i;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (compare(order[mid], v) > 0) {
+        hi = mid;
+      } else {
+        lo = mid + 1;
+      }
+    }
+    for (let j = i; j > lo; j--) {
+      order[j] = order[j - 1];
+    }
+    order[lo] = v;
+  }
+};
+
 const tinyCounts = new Int32Array(258);
 
 const tinyBucketStrings = (keys: unknown[], comparable: number[], desc: boolean, ordered: number[]): boolean => {
@@ -1047,13 +1067,9 @@ const tinyBucketStrings = (keys: unknown[], comparable: number[], desc: boolean,
       if (desc) {
         write -= size;
       }
-      if (size === 1) {
-        ordered[write] = comparable[order[start]];
-      } else {
-        const run = order.slice(start, t).sort(compare);
-        for (let q = 0; q < size; q++) {
-          ordered[write + q] = comparable[run[q]];
-        }
+      sortRange(order, start, t, compare);
+      for (let q = 0; q < size; q++) {
+        ordered[write + q] = comparable[order[start + q]];
       }
       if (!desc) {
         write += size;
@@ -1214,13 +1230,9 @@ const tinyMulti = <T>(items: readonly T[], columns: SortColumn[]): T[] | null =>
   let start = 0;
   for (let t = 1; t <= n; t++) {
     if (t === n || keys[ordered[t]] !== keys[ordered[start]]) {
-      if (t - start === 1) {
-        result[start] = items[ordered[start]];
-      } else {
-        const run = ordered.slice(start, t).sort(chain);
-        for (let q = 0; q < run.length; q++) {
-          result[start + q] = items[run[q]];
-        }
+      sortRange(ordered, start, t, chain);
+      for (let q = start; q < t; q++) {
+        result[q] = items[ordered[q]];
       }
       start = t;
     }
