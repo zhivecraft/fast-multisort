@@ -140,3 +140,32 @@ describe("orderByColumns under the record-sort specification", () => {
     );
   });
 });
+
+const perturbed = <T>(sorted: T[], moves: Array<[number, number]>) => {
+  const rows = sorted.slice();
+  for (const [from, to] of moves) {
+    const [row] = rows.splice(from % rows.length, 1);
+    rows.splice(to % (rows.length + 1), 0, row);
+  }
+  return rows;
+};
+
+describe("orderByColumns on nearly ordered inputs", () => {
+  it("is a stable sort when a few rows moved out of an ordered list", () => {
+    fc.assert(
+      fc.property(
+        fc.array(rowArb, {minLength: 20, maxLength: 400}),
+        fc.array(ruleArb, {minLength: 1, maxLength: 3}),
+        fc.array(fc.tuple(fc.nat(), fc.nat()), {maxLength: 12}),
+        (items, rules, moves) => {
+          const sorted = items.map((item, index) => ({...item, index})).toSorted((a, b) => specCompare(a, b, rules));
+          assertStableUnderSpec(
+            perturbed(sorted, moves).map((item, index) => ({...item, index})),
+            rules
+          );
+        }
+      ),
+      {numRuns: 400}
+    );
+  });
+});

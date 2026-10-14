@@ -387,14 +387,18 @@ const classBuckets = (classes: Classes, first: boolean): number[][] => {
   return ids.map((cls) => classes.get(cls)!);
 };
 
-const isFastColumn = ({keys, specialClass}: SortColumn): boolean => {
+const fastClasses = ({keys, specialClass}: SortColumn, classes: Float64Array | null): boolean => {
   let kind = 0;
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     if (Number.isNaN(key)) {
       return false;
     }
-    if (specialClass(key) !== 0) {
+    const cls = specialClass(key);
+    if (classes !== null) {
+      classes[i] = cls;
+    }
+    if (cls !== 0) {
       continue;
     }
     const type = typeof key;
@@ -415,7 +419,170 @@ const isFastColumn = ({keys, specialClass}: SortColumn): boolean => {
   return true;
 };
 
-const emitBucket = (bucket: number[], columns: SortColumn[], c: number, sink: Sink): void => {
+const isFastColumn = (column: SortColumn) => fastClasses(column, null);
+
+const NEARLY = 64;
+
+type Compare = (a: number, b: number) => number;
+
+const stops = (chain: Compare, src: Uint32Array, at: number, pivot: number, pivotFirst: boolean) =>
+  pivotFirst ? chain(pivot, src[at]) < 0 : !(chain(src[at], pivot) < 0);
+
+const gallop = (chain: Compare, src: Uint32Array, from: number, to: number, pivot: number, pivotFirst: boolean) => {
+  let lo = from;
+  let hi = from;
+  let step = 1;
+  while (hi < to && !stops(chain, src, hi, pivot, pivotFirst)) {
+    lo = hi + 1;
+    hi += step;
+    step *= 2;
+  }
+  hi = Math.min(hi, to);
+  while (lo < hi) {
+    const m = (lo + hi) >>> 1;
+    if (stops(chain, src, m, pivot, pivotFirst)) {
+      hi = m;
+    } else {
+      lo = m + 1;
+    }
+  }
+  return lo;
+};
+
+const runBounds = (chain: Compare, n: number, limit: number) => {
+  const bounds = [0];
+  for (let i = 1; i < n; i++) {
+    if (chain(i - 1, i) > 0) {
+      if (bounds.length > limit) {
+        return null;
+      }
+      bounds.push(i);
+    }
+  }
+  bounds.push(n);
+  return bounds;
+};
+
+const mergeRuns = (chain: Compare, runs: number[], n: number) => {
+  let bounds = runs;
+  let src = new Uint32Array(n);
+  for (let i = 0; i < n; i++) {
+    src[i] = i;
+  }
+  let dst = new Uint32Array(n);
+  while (bounds.length > 2) {
+    const next = [0];
+    for (let r = 0; r < bounds.length - 1; r += 2) {
+      const mid = bounds[r + 1];
+      const end = r + 2 < bounds.length ? bounds[r + 2] : mid;
+      let i = bounds[r];
+      let j = mid;
+      let o = i;
+      while (i < mid && j < end) {
+        const left = gallop(chain, src, i, mid, src[j], true);
+        dst.set(src.subarray(i, left), o);
+        o += left - i;
+        i = left;
+        if (i === mid) {
+          break;
+        }
+        const right = gallop(chain, src, j, end, src[i], false);
+        dst.set(src.subarray(j, right), o);
+        o += right - j;
+        j = right;
+      }
+      dst.set(src.subarray(i, mid), o);
+      dst.set(src.subarray(j, end), o + mid - i);
+      next.push(end);
+    }
+    const t = src;
+    src = dst;
+    dst = t;
+    bounds = next;
+  }
+  return src;
+};
+
+const classChain = (columns: SortColumn[], classes: Float64Array[]) => {
+  const keys = columns.map((column) => column.keys);
+  const descs = columns.map((column) => column.desc);
+  const firsts = columns.map((column) => column.specialsFirst);
+  const compares = columns.map((column) => column.compare);
+  return (a: number, b: number) => {
+    for (let c = 0; c < keys.length; c++) {
+      const ca = classes[c][a];
+      const cb = classes[c][b];
+      if (ca !== cb) {
+        const result = compareClasses(ca, cb);
+        return firsts[c] ? -result : result;
+      }
+      if (ca === 0) {
+        const x = keys[c][a];
+        const y = keys[c][b];
+        const compare = compares[c];
+        const result = compare === undefined ? (x === y ? 0 : (x as number) < (y as number) ? -1 : 1) : compare(x, y);
+        if (result < 0 || result > 0) {
+          return descs[c] ? -result : result;
+        }
+      }
+    }
+    return 0;
+  };
+};
+
+const fastChain = (columns: SortColumn[], n: number) => {
+  const plain = plainComparator(columns);
+  if (plain !== null) {
+    return plain;
+  }
+  const classes: Float64Array[] = [];
+  for (const column of columns) {
+    const cls = new Float64Array(n);
+    if (!fastClasses(column, cls)) {
+      return null;
+    }
+    classes.push(cls);
+  }
+  return classChain(columns, classes);
+};
+
+const roughlyOrdered = ({keys, desc, compare}: SortColumn, n: number, limit: number) => {
+  if (compare !== undefined) {
+    return true;
+  }
+  let descents = 0;
+  for (let i = 1; i < n; i++) {
+    const prev = keys[i - 1] as number;
+    const next = keys[i] as number;
+    if ((desc ? prev < next : prev > next) && ++descents > limit) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const nearlyOrdered = <T>(items: readonly T[], columns: SortColumn[]): T[] | null => {
+  const n = items.length;
+  if (!roughlyOrdered(columns[0], n, n / NEARLY)) {
+    return null;
+  }
+  const chain = fastChain(columns, n);
+  if (chain === null) {
+    return null;
+  }
+  const runs = runBounds(chain, n, n / NEARLY);
+  return runs === null ? null : gather(items, mergeRuns(chain, runs, n));
+};
+
+const gather = <T>(items: readonly T[], order: ArrayLike<number>) => {
+  const result = new Array<T>(order.length);
+  for (let i = 0; i < order.length; i++) {
+    result[i] = items[order[i]];
+  }
+  return result;
+};
+
+const emitBucket =(bucket: number[], columns: SortColumn[], c: number, sink: Sink): void => {
   if (c < columns.length && bucket.length > 1) {
     sortInto(bucket, columns, c, sink);
     return;
@@ -714,31 +881,36 @@ const isPlainColumn = ({keys, specialClass, compare}: SortColumn) => {
   return true;
 };
 
-const tinyComparator = (columns: SortColumn[]) => {
+const plainColumn = (keys: unknown[], desc: boolean) =>
+  desc
+    ? (a: number, b: number) => {
+        const x = keys[a] as number;
+        const y = keys[b] as number;
+        return x < y ? 1 : x > y ? -1 : 0;
+      }
+    : (a: number, b: number) => {
+        const x = keys[a] as number;
+        const y = keys[b] as number;
+        return x < y ? -1 : x > y ? 1 : 0;
+      };
+
+const tinyComparator = (columns: SortColumn[]) => plainComparator(columns) ?? comparatorFrom(columns, 0);
+
+const plainComparator = (columns: SortColumn[]) => {
   if (!columns.every(isPlainColumn)) {
-    return comparatorFrom(columns, 0);
+    return null;
   }
   if (columns.length === 1) {
-    const {keys, desc} = columns[0];
-    return desc
-      ? (a: number, b: number) => {
-          const x = keys[a] as number;
-          const y = keys[b] as number;
-          return x < y ? 1 : x > y ? -1 : 0;
-        }
-      : (a: number, b: number) => {
-          const x = keys[a] as number;
-          const y = keys[b] as number;
-          return x < y ? -1 : x > y ? 1 : 0;
-        };
+    return plainColumn(columns[0].keys, columns[0].desc);
   }
+  const keys = columns.map((column) => column.keys);
+  const descs = columns.map((column) => column.desc);
   return (a: number, b: number) => {
-    for (let c = 0; c < columns.length; c++) {
-      const {keys, desc} = columns[c];
-      const x = keys[a] as number;
-      const y = keys[b] as number;
+    for (let c = 0; c < keys.length; c++) {
+      const x = keys[c][a] as number;
+      const y = keys[c][b] as number;
       if (x !== y) {
-        return (x < y) === desc ? 1 : -1;
+        return (x < y) === descs[c] ? 1 : -1;
       }
     }
     return 0;
@@ -1008,7 +1180,7 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
 const tinyMulti = <T>(items: readonly T[], columns: SortColumn[]): T[] | null => {
   const first = columns[0];
   const {keys, desc, specialClass} = first;
-  if (first.compare !== undefined || !columns.every(isFastColumn)) {
+  if (first.compare !== undefined || !columns.every((column) => isFastColumn(column))) {
     return null;
   }
   const n = keys.length;
@@ -1063,6 +1235,12 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
       return ordered;
     }
   }
+  if (columns.length <= COLUMNS_MAX_RECURSIVE) {
+    const nearly = nearlyOrdered(items, columns);
+    if (nearly !== null) {
+      return nearly;
+    }
+  }
   if (n <= TINY && columns.length === 1) {
     const single = tinySingle(items, columns[0]);
     if (single !== null) {
@@ -1080,7 +1258,7 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
     }
     return indices.sort(tinyComparator(columns)).map((i) => items[i]);
   }
-  if (columns.length > COLUMNS_MAX_RECURSIVE || !columns.every(isFastColumn)) {
+  if (columns.length > COLUMNS_MAX_RECURSIVE || !columns.every((column) => isFastColumn(column))) {
     return indices.sort(comparatorFrom(columns, 0)).map((i) => items[i]);
   }
   const frame = acquireFrame();
@@ -1090,11 +1268,7 @@ export const orderByColumns = <T>(items: readonly T[], columns: SortColumn[]): T
   } finally {
     releaseFrame(frame);
   }
-  const result = new Array<T>(n);
-  for (let i = 0; i < n; i++) {
-    result[i] = items[out[i]];
-  }
-  return result;
+  return gather(items, out);
 };
 
 const toGetter = <T>(iteratee: SortIteratee<T>) =>
@@ -1110,6 +1284,14 @@ const keysOf = <T>(items: readonly T[], get: (item: T) => unknown): unknown[] =>
   return keys;
 };
 
+const addRun = (runs: number[], at: number, limit: number) => {
+  if (runs.length > limit) {
+    return true;
+  }
+  runs.push(at);
+  return false;
+};
+
 const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc: boolean, keys: unknown[]): T[] | null => {
   const n = items.length;
   let prev = get(items[0]);
@@ -1119,6 +1301,9 @@ const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc
   let nonDecreasing = true;
   let nonIncreasing = true;
   let strict = true;
+  let crowded = false;
+  const runs = [0];
+  const limit = n / NEARLY;
   for (let i = 1; i < n; i++) {
     const next = get(items[i]);
     keys[i] = next;
@@ -1127,13 +1312,19 @@ const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc
         plain = false;
       } else if ((prev as number) > (next as number)) {
         nonDecreasing = false;
+        if (!desc) {
+          crowded ||= addRun(runs, i, limit);
+        }
       } else if ((prev as number) < (next as number)) {
         nonIncreasing = false;
+        if (desc) {
+          crowded ||= addRun(runs, i, limit);
+        }
       } else {
         strict = false;
       }
-      if (!nonDecreasing && !nonIncreasing) {
-        plain = false;
+      if (crowded) {
+        plain = strict && (desc ? nonDecreasing : nonIncreasing);
       }
     }
     prev = next;
@@ -1144,14 +1335,15 @@ const orderedByGetter = <T>(items: readonly T[], get: (item: T) => unknown, desc
   if (desc ? nonIncreasing : nonDecreasing) {
     return items.slice();
   }
-  if (strict) {
+  if (crowded) {
     const result = new Array<T>(n);
     for (let i = 0; i < n; i++) {
       result[i] = items[n - 1 - i];
     }
     return result;
   }
-  return null;
+  runs.push(n);
+  return gather(items, mergeRuns(plainColumn(keys, desc), runs, n));
 };
 
 const DIRECT = 16;

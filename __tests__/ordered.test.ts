@@ -39,3 +39,27 @@ describe("already ordered inputs", () => {
     );
   });
 });
+
+describe("nearly ordered inputs", () => {
+  it("match lodash when a few rows moved, any keys, directions and nulls", () => {
+    const key = fc.oneof(fc.integer({min: -50, max: 50}), fc.constantFrom<unknown>(null, undefined, "a", "b"));
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({a: key, b: key}), {minLength: 20, maxLength: 400}),
+        fc.array(fc.constantFrom("asc" as const, "desc" as const), {minLength: 1, maxLength: 2}),
+        fc.array(fc.tuple(fc.nat(), fc.nat()), {maxLength: 12}),
+        (values, orders, moves) => {
+          const props = orders.length === 1 ? ["a"] : ["a", "b"];
+          const rows = lodashOrderBy(values, props, orders);
+          for (const [from, to] of moves) {
+            const [row] = rows.splice(from % rows.length, 1);
+            rows.splice(to % (rows.length + 1), 0, row);
+          }
+          const items = rows.map((row, i) => ({...row, i}));
+          expect(ids(orderBy(items, props as Array<"a" | "b">, orders))).toEqual(ids(lodashOrderBy(items, props, orders)));
+        }
+      ),
+      {numRuns: 400}
+    );
+  });
+});
