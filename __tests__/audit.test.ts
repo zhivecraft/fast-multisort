@@ -284,6 +284,26 @@ describe("keys are read once per item", () => {
     }
   });
 
+  it("calls the iteratee once per item when the ordered-input check stops midway", () => {
+    for (const n of [12, 17, 200]) {
+      const items = Array.from({length: n}, (_, i) => i);
+      const columns = [
+        items.map((i) => (i === 0 ? null : i)),
+        items.map((i) => (i === n >> 1 ? null : i)),
+        items.map((i) => (i * 7919) % n),
+        items.map((i) => Math.max(n - i, 2)),
+      ];
+      for (const keys of columns) {
+        for (const order of ["asc", "desc"] as const) {
+          let calls = 0;
+          const out = orderBy(items, [(i) => (calls++, keys[i])], [order]);
+          expect(calls).toBe(n);
+          expect(out).toEqual(lodashOrderBy(items, [(i: number) => keys[i]], [order]));
+        }
+      }
+    }
+  });
+
   it("orders keys from an impure iteratee like lodash", () => {
     let k = 0;
     expect(orderBy([5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [() => k++])).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
