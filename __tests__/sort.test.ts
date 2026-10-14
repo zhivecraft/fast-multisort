@@ -126,6 +126,27 @@ describe("sortBy / orderBy", () => {
     expect(byValueThenDate(true, true)).toEqual([0, 2, 1, 3]);
   });
 
+  it("keeps ties in input order on small inputs bucketed by a string column", () => {
+    const word = fc.integer({min: 0, max: 30}).map((k) => `k${k}`);
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(word, {minLength: 16, maxLength: 16}),
+        fc.array(word, {minLength: 1, maxLength: 112}),
+        fc.array(fc.integer({min: 0, max: 2}), {minLength: 128, maxLength: 128}),
+        ordersArb,
+        (head, tail, seconds, orders) => {
+          const input = [...head, ...tail].map((a, i) => ({a, b: seconds[i], i}));
+          for (const props of [["a"], ["a", "b"]] as const) {
+            expect(orderBy(input, props, orders).map((x) => x.i)).toEqual(
+              lodashOrderBy(input, props, orders).map((x) => x.i)
+            );
+          }
+        }
+      ),
+      {numRuns: 300}
+    );
+  });
+
   it("sorts large numeric columns via radix identically to a comparator sort", () => {
     fc.assert(
       fc.property(fc.array(fc.double({noNaN: true}), {minLength: 64, maxLength: 300}), (values) => {
