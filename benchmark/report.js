@@ -78,7 +78,7 @@ code { font-family: var(--mono); font-size: 0.85em; }
   <header>
     <h1>fast-multisort against 15 sorters, 1 row to 1 million</h1>
     <p class="muted" id="machine"></p>
-    <p>Every run is the same suite: 8 key shapes, 7 sizes, each library checked against the lodash permutation before timing. Ratios are how many times slower a library is than fast-multisort on that case; below 1.00 the library is faster. Node runs via tinybench; the browsers run the identical bundle.</p>
+    <p>Every run is the same suite: 8 key shapes, 7 sizes, each library checked against the lodash permutation before timing. Ratios are how many times slower a library is than fast-multisort on that case; below 1.00 the library is faster. Each task is timed in batches calibrated to last at least 20 ms, median of up to 25 batches; node and the browsers run the identical bundle.</p>
   </header>
   <div id="engines"></div>
 </main>
