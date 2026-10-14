@@ -72,6 +72,19 @@ describe("sortBy / orderBy", () => {
     );
   });
 
+  it("orders a column of dates and plain objects exactly like lodash", () => {
+    const key = fc.constantFrom<unknown>(new Date(0), new Date(1), new Date(2), {}, {});
+    fc.assert(
+      fc.property(fc.array(key, {minLength: 2, maxLength: 16}), fc.constantFrom("asc" as const, "desc" as const), (keys, order) => {
+        const input = keys.map((a, i) => ({a, i}));
+        expect(orderBy(input, ["a"], [order]).map((x) => x.i)).toEqual(
+          lodashOrderBy(input, ["a"], [order]).map((x) => x.i)
+        );
+      }),
+      {numRuns: 500}
+    );
+  });
+
   it("orders NaN as the greatest key exactly like lodash, including its unstable NaN ties", () => {
     const items = [
       {v: NaN, i: 0},
