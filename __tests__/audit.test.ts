@@ -269,3 +269,38 @@ describe("direct small-input path", () => {
     );
   });
 });
+
+describe("keys are read once per item", () => {
+  it("calls each iteratee once per item on every path", () => {
+    for (const n of [2, 10, 16, 17, 200]) {
+      const items = Array.from({length: n}, (_, i) => i);
+      let k = 0;
+      const out = orderBy(items, [() => k++]);
+      expect(k).toBe(n);
+      expect(out).toEqual(lodashOrderBy(items, [((i: number) => i) as (i: number) => number]));
+      let calls = 0;
+      multisort(items, [{by: (i) => (calls++, -i)}, {by: (i) => (calls++, i)}]);
+      expect(calls).toBe(2 * n);
+    }
+  });
+
+  it("orders keys from an impure iteratee like lodash", () => {
+    let k = 0;
+    expect(orderBy([5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [() => k++])).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+  });
+});
+
+describe("special keys are never compared by value", () => {
+  it("sorts a mostly ascending column holding a symbol like lodash", () => {
+    const rows = Array.from({length: 20}, (_, i) => ({id: i, a: i === 3 ? Symbol("s") : i}));
+    expect(orderBy(rows, ["a"]).map((r) => r.id)).toEqual(lodashOrderBy(rows, ["a"]).map((r) => r.id));
+    expect(multisort(rows, [{by: "a"}]).map((r) => r.id)).toHaveLength(20);
+  });
+
+  it("never converts a key marked special to a primitive", () => {
+    const opaque = Object.create(null);
+    const keys = Array.from({length: 40}, (_, i) => (i === 5 ? opaque : i));
+    const specialClass = (key: unknown) => (key === opaque ? 1 : 0);
+    expect(orderByColumns(keys, [column(keys, {specialClass})]).at(-1)).toBe(opaque);
+  });
+});
