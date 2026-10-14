@@ -10,7 +10,7 @@ execFileSync("node_modules/.bin/esbuild", ["benchmark/browser-entry.js", "--bund
 const bundle = path.resolve("benchmark/.browser-bundle.js");
 const page = path.resolve("benchmark/.browser-page.html");
 fs.writeFileSync(page, `<!doctype html><meta charset="utf-8"><script src="${pathToFileURL(bundle).href}"></script>`);
-const pageUrl = pathToFileURL(page).href;
+const pageUrl = `${pathToFileURL(page).href}${process.env.SIZES ? `?sizes=${process.env.SIZES}` : ""}`;
 
 const progress = (label) => (text) => console.error(`${new Date().toISOString().slice(11, 19)} ${label}: ${text}`);
 
