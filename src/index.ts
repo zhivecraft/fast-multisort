@@ -989,8 +989,12 @@ const sampleHasDuplicates = (keys: unknown[], comparable: number[]) => {
 };
 
 const sortRange = (order: number[], from: number, to: number, compare: Compare) => {
+  let inPlace = true;
   for (let i = from + 1; i < to; i++) {
     const v = order[i];
+    if (inPlace && !(compare(order[i - 1], v) > 0)) {
+      continue;
+    }
     let lo = from;
     let hi = i;
     while (lo < hi) {
@@ -1001,6 +1005,7 @@ const sortRange = (order: number[], from: number, to: number, compare: Compare) 
         lo = mid + 1;
       }
     }
+    inPlace = lo === i;
     for (let j = i; j > lo; j--) {
       order[j] = order[j - 1];
     }
@@ -1151,7 +1156,10 @@ const tinySingle = <T>(items: readonly T[], column: SortColumn): T[] | null => {
     ordered = new Array<number>(m);
     if (!tinyBucketStrings(keys, comparable, desc, ordered)) {
       ordered = comparable;
-      comparable.sort(
+      sortRange(
+        comparable,
+        0,
+        m,
         desc
           ? (a, b) => {
               const x = keys[a] as string;
@@ -1351,10 +1359,29 @@ const nullsChain = (keys: unknown[][], descs: boolean[], nullsFirst: boolean[]) 
   return 0;
 };
 
-const sortByKeys = <T>(items: readonly T[], compare: Compare) => {
+const consistent = (keys: unknown[]) => {
+  let kind = "";
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (key !== null && key !== undefined) {
+      const type = typeof key;
+      if ((type !== "number" && type !== "string") || Number.isNaN(key) || (kind !== "" && type !== kind)) {
+        return false;
+      }
+      kind = type;
+    }
+  }
+  return true;
+};
+
+const sortByKeys = <T>(items: readonly T[], keys: unknown[][], compare: Compare) => {
   const indices = new Array<number>(items.length);
   for (let i = 0; i < items.length; i++) {
     indices[i] = i;
+  }
+  if (keys.every(consistent)) {
+    sortRange(indices, 0, indices.length, compare);
+    return gather(items, indices);
   }
   return gather(items, indices.sort(compare));
 };
@@ -1374,14 +1401,16 @@ export const orderBy = <T>(
     if (ordered !== null) {
       return ordered;
     }
-    return items.length > DIRECT ? orderByColumns(items, [column]) : sortByKeys(items, lodashChain([column.keys], [desc]));
+    return items.length > DIRECT ? orderByColumns(items, [column]) : sortByKeys(items, [column.keys], lodashChain([column.keys], [desc]));
   }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   if (items.length <= DIRECT) {
+    const keys = getters.map((get) => keysOf(items, get));
     return sortByKeys(
       items,
+      keys,
       lodashChain(
-        getters.map((get) => keysOf(items, get)),
+        keys,
         getters.map((_, c) => orders[c] === "desc")
       )
     );
@@ -1416,10 +1445,12 @@ export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[])
   }
   if (items.length <= DIRECT) {
     const descs = rules.map(({order}) => order === "desc");
+    const keys = rules.map(({by}) => keysOf(items, toGetter(by)));
     return sortByKeys(
       items,
+      keys,
       nullsChain(
-        rules.map(({by}) => keysOf(items, toGetter(by))),
+        keys,
         descs,
         rules.map(({nulls}, c) => (nulls === undefined ? descs[c] : nulls === "first"))
       )
