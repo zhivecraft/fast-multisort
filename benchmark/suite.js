@@ -9,7 +9,6 @@ import sortArray from "sort-array";
 import sortByPath from "sort-by";
 import sortOn from "sort-on";
 import {firstBy} from "thenby";
-import {Bench} from "tinybench";
 import underscore from "underscore";
 
 import {orderBy} from "../dist/index.mjs";
@@ -101,6 +100,38 @@ export const libraries = (rows, c) => {
   return list;
 };
 
+let keep;
+
+const measure = (fn) => {
+  keep = fn();
+  let reps = 1;
+  let batch = 0;
+  for (;;) {
+    const start = performance.now();
+    for (let i = 0; i < reps; i++) {
+      keep = fn();
+    }
+    batch = performance.now() - start;
+    if (batch >= 20 || reps >= 1e7) {
+      break;
+    }
+    reps *= 2;
+  }
+  const rounds = batch >= 500 ? 2 : 5;
+  const samples = [];
+  const deadline = performance.now() + 500;
+  do {
+    const start = performance.now();
+    for (let i = 0; i < reps; i++) {
+      keep = fn();
+    }
+    samples.push((performance.now() - start) / reps);
+  } while (samples.length < rounds || (performance.now() < deadline && samples.length < 25));
+  samples.sort((a, b) => a - b);
+  globalThis.__keep = keep;
+  return samples[samples.length >> 1];
+};
+
 const permutation = (sorted, rows) => {
   const at = new Map(rows.map((row, i) => [row, i]));
   return sorted.map((x) => at.get(x)).join(",");
@@ -111,8 +142,8 @@ export const run = async (onCase = () => {}, only = sizes) => {
   for (const size of only) {
     const rows = makeRows(size);
     for (const c of cases) {
-      const bench = new Bench({time: 500, warmupTime: 100, iterations: 1, warmupIterations: 1});
       const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
+      const timed = [];
       for (const [name, fn] of Object.entries(libraries(rows, c))) {
         let status = "";
         try {
@@ -125,20 +156,14 @@ export const run = async (onCase = () => {}, only = sizes) => {
         if (name === "fast-multisort" && status !== "") {
           throw new Error(`fast-multisort${status} on ${size} rows, ${c.name}`);
         }
-        bench.add(`${name}${status}`, fn);
+        timed.push({name: `${name}${status}`, ms: measure(fn)});
       }
-      await bench.run();
-      const tasks = [...bench.tasks].sort((a, b) => (b.result?.throughput.mean ?? 0) - (a.result?.throughput.mean ?? 0));
-      const ours = tasks.find((t) => t.name.startsWith("fast-multisort"))?.result?.throughput.mean ?? 0;
+      timed.sort((a, b) => a.ms - b.ms);
+      const ours = timed.find((t) => t.name === "fast-multisort").ms;
       const entry = {
         size,
         name: c.name,
-        tasks: tasks.map((t) => ({
-          name: t.name,
-          ops: t.result?.throughput.mean ?? 0,
-          ms: t.result?.latency.mean ?? 0,
-          ratio: ours / (t.result?.throughput.mean ?? 1),
-        })),
+        tasks: timed.map((t) => ({name: t.name, ops: 1000 / t.ms, ms: t.ms, ratio: t.ms / ours})),
       };
       results.push(entry);
       onCase(entry);
