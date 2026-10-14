@@ -2,7 +2,7 @@ import fc from "fast-check";
 import lodashOrderBy from "lodash/orderBy";
 import {describe, expect, it} from "vitest";
 
-import {orderBy} from "../src/index.ts";
+import {multisort, orderBy} from "../src/index.ts";
 
 const ids = <T extends {i: number}>(items: T[]) => items.map((x) => x.i);
 
@@ -60,6 +60,35 @@ describe("nearly ordered inputs", () => {
         }
       ),
       {numRuns: 400}
+    );
+  });
+
+  it("match lodash when a few rows of one number or string column moved, past the run threshold", () => {
+    fc.assert(
+      fc.property(
+        fc.oneof(
+          fc.array(fc.integer({min: -50, max: 50}), {minLength: 64, maxLength: 2000}),
+          fc.array(fc.constantFrom("a", "b", "c", "d"), {minLength: 64, maxLength: 2000})
+        ),
+        fc.constantFrom("asc" as const, "desc" as const),
+        fc.array(fc.tuple(fc.nat(), fc.nat()), {minLength: 1, maxLength: 4}),
+        (values, order, moves) => {
+          const rows = lodashOrderBy(
+            values.map((a) => ({a})),
+            ["a"],
+            [order]
+          );
+          for (const [from, to] of moves) {
+            const [row] = rows.splice(from % rows.length, 1);
+            rows.splice(to % (rows.length + 1), 0, row);
+          }
+          const items = rows.map((row, i) => ({...row, i}));
+          const expected = ids(lodashOrderBy(items, ["a"], [order]));
+          expect(ids(orderBy(items, ["a"], [order]))).toEqual(expected);
+          expect(ids(multisort(items, [{by: "a", order}]))).toEqual(expected);
+        }
+      ),
+      {numRuns: 300}
     );
   });
 });
