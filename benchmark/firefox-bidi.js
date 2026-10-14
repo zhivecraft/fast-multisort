@@ -12,11 +12,15 @@ const connect = (url) =>
     ws.addEventListener("error", (event) => reject(new Error(`websocket ${url}: ${event.message ?? "error"}`)));
   });
 
-const client = (ws) => {
+const client = (ws, onLog) => {
   let next = 1;
   const pending = new Map();
   ws.addEventListener("message", (event) => {
     const message = JSON.parse(String(event.data));
+    if (message.method === "log.entryAdded") {
+      onLog(message.params.text);
+      return;
+    }
     const waiter = pending.get(message.id);
     if (waiter === undefined) {
       return;
@@ -45,7 +49,7 @@ export const firefoxVersion = (bin = process.env.FIREFOX_BIN ?? DEFAULT_BIN) => 
   return m === null ? "unknown" : m[1];
 };
 
-export const evaluateInFirefox = async (pageUrl, expression, bin = process.env.FIREFOX_BIN ?? DEFAULT_BIN) => {
+export const evaluateInFirefox = async (pageUrl, expression, onLog = () => {}, bin = process.env.FIREFOX_BIN ?? DEFAULT_BIN) => {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "ff-bench-"));
   fs.writeFileSync(
     path.join(profile, "user.js"),
@@ -70,8 +74,9 @@ export const evaluateInFirefox = async (pageUrl, expression, bin = process.env.F
   });
   try {
     const ws = await connect(`${wsUrl}/session`);
-    const send = client(ws);
+    const send = client(ws, onLog);
     await send("session.new", {capabilities: {}});
+    await send("session.subscribe", {events: ["log.entryAdded"]});
     const tree = await send("browsingContext.getTree");
     const context = tree.contexts[0].context;
     await send("browsingContext.navigate", {context, url: pageUrl, wait: "complete"});

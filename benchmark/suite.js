@@ -28,24 +28,26 @@ export const makeRows = (n) =>
     created: new Date(1.7e12 + rand() * 1e10).toISOString(),
     sorted: i,
     reversed: n - i,
+    moved: i === ((n * 0.37) | 0) ? ((n * 0.83) | 0) + 0.5 : i,
   }));
 
-const keyOf = (prop) => (x) => x[prop];
 const str = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const nullsLast = (a, b) => (a === b ? 0 : a === null ? 1 : b === null ? -1 : a - b);
 const nullsFirstDesc = (a, b) => (a === b ? 0 : a === null ? -1 : b === null ? 1 : b - a);
 
 export const cases = [
-  {name: "string key, 10 distinct values", props: ["name"], orders: ["asc"], inline: (a, b) => str(a.name, b.name)},
-  {name: "string key, all unique", props: ["unique"], orders: ["asc"], inline: (a, b) => str(a.unique, b.unique)},
-  {name: "integer key, 10% null", props: ["rank"], orders: ["asc"], inline: (a, b) => nullsLast(a.rank, b.rank)},
-  {name: "float key", props: ["weight"], orders: ["asc"], inline: (a, b) => a.weight - b.weight},
-  {name: "ISO date string key", props: ["created"], orders: ["asc"], inline: (a, b) => str(a.created, b.created)},
-  {name: "already sorted integer key", props: ["sorted"], orders: ["asc"], inline: (a, b) => a.sorted - b.sorted},
-  {name: "reverse sorted integer key", props: ["reversed"], orders: ["asc"], inline: (a, b) => a.reversed - b.reversed},
+  {name: "string key, 10 distinct values", props: ["name"], getters: [(x) => x.name], orders: ["asc"], inline: (a, b) => str(a.name, b.name)},
+  {name: "string key, all unique", props: ["unique"], getters: [(x) => x.unique], orders: ["asc"], inline: (a, b) => str(a.unique, b.unique)},
+  {name: "integer key, 10% null", props: ["rank"], getters: [(x) => x.rank], orders: ["asc"], inline: (a, b) => nullsLast(a.rank, b.rank)},
+  {name: "float key", props: ["weight"], getters: [(x) => x.weight], orders: ["asc"], inline: (a, b) => a.weight - b.weight},
+  {name: "ISO date string key", props: ["created"], getters: [(x) => x.created], orders: ["asc"], inline: (a, b) => str(a.created, b.created)},
+  {name: "already sorted integer key", props: ["sorted"], getters: [(x) => x.sorted], orders: ["asc"], inline: (a, b) => a.sorted - b.sorted},
+  {name: "reverse sorted integer key", props: ["reversed"], getters: [(x) => x.reversed], orders: ["asc"], inline: (a, b) => a.reversed - b.reversed},
+  {name: "ordered list, one row moved", props: ["moved"], getters: [(x) => x.moved], orders: ["asc"], inline: (a, b) => a.moved - b.moved},
   {
     name: "three keys, mixed directions",
     props: ["name", "rank", "created"],
+    getters: [(x) => x.name, (x) => x.rank, (x) => x.created],
     orders: ["asc", "desc", "asc"],
     inline: (a, b) => str(a.name, b.name) || nullsFirstDesc(a.rank, b.rank) || str(a.created, b.created),
   },
@@ -69,7 +71,7 @@ const nativeDecorated = (items, props, orders) =>
     .map((x) => x.item);
 
 export const libraries = (rows, c) => {
-  const keys = c.props.map(keyOf);
+  const keys = c.getters;
   const signed = c.props.map((p, i) => (c.orders[i] === "desc" ? `-${p}` : p));
   const list = {
     "fast-multisort": () => orderBy(rows, keys, c.orders),
@@ -103,7 +105,6 @@ export const libraries = (rows, c) => {
 let keep;
 
 const measure = (fn) => {
-  keep = fn();
   let reps = 1;
   let batch = 0;
   for (;;) {
@@ -118,7 +119,7 @@ const measure = (fn) => {
     reps *= 2;
   }
   const rounds = batch >= 500 ? 2 : 5;
-  const samples = [];
+  const samples = [batch / reps];
   const deadline = performance.now() + 500;
   do {
     const start = performance.now();
@@ -142,7 +143,7 @@ export const run = async (onCase = () => {}, only = sizes) => {
   for (const size of only) {
     const rows = makeRows(size);
     for (const c of cases) {
-      const reference = permutation(lodashOrderBy(rows, c.props.map(keyOf), c.orders), rows);
+      const reference = permutation(lodashOrderBy(rows, c.getters, c.orders), rows);
       const timed = [];
       for (const [name, fn] of Object.entries(libraries(rows, c))) {
         let status = "";

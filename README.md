@@ -3662,7 +3662,7 @@ The honest footnote: a hand-written comparator chain passed to the native sort i
 
 ## How
 
-Numbers go through a stable radix sort on their float64 bits, strings through buckets and a radix sort over the characters that actually differ, ties recurse into the next rule, and anything exotic falls back to the lodash comparator so the order stays identical to lodash. Inputs that are already in order are passed through. The rest is bookkeeping.
+Numbers go through a stable radix sort on their float64 bits, strings through buckets and a radix sort over the characters that actually differ, ties recurse into the next rule, and anything exotic falls back to the lodash comparator so the order stays identical to lodash. Inputs that are already in order are passed through, and inputs that are nearly in order (a list that came back sorted from the server, then had a few rows edited) are cut into their ordered runs and merged with galloping, the way TimSort does it, but on the extracted keys instead of through a comparator callback. The rest is bookkeeping.
 
 ## License
 
