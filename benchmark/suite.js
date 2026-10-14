@@ -112,7 +112,12 @@ const batch = (fn, reps) => {
   return (performance.now() - start) / reps;
 };
 
-const calibrated = (fn) => {
+const ONE_CALL = 2000;
+
+const calibrated = ({fn, first}) => {
+  if (first >= ONE_CALL) {
+    return {fn, reps: 1, samples: [first], rounds: 1};
+  }
   for (let reps = 1; ; reps *= 2) {
     const ms = batch(fn, reps);
     if (ms * reps >= 20 || reps >= 1e7) {
@@ -121,8 +126,8 @@ const calibrated = (fn) => {
   }
 };
 
-const measure = (fns) => {
-  const tasks = fns.map(calibrated);
+const measure = (entries) => {
+  const tasks = entries.map(calibrated);
   const deadline = performance.now() + 500 * tasks.length;
   for (;;) {
     const due = tasks.filter((t) => t.samples.length < t.rounds || (t.rounds === 5 && t.samples.length < 25 && performance.now() < deadline));
@@ -150,8 +155,12 @@ export const run = async (onCase = () => {}, only = sizes) => {
       const reference = permutation(lodashOrderBy(rows, c.getters, c.orders), rows);
       const checked = Object.entries(libraries(rows, c)).map(([name, fn]) => {
         let status = "";
+        let first = 0;
         try {
-          if (permutation(fn(), rows) !== reference) {
+          const start = performance.now();
+          const sorted = fn();
+          first = performance.now() - start;
+          if (permutation(sorted, rows) !== reference) {
             status = " (different order)";
           }
         } catch (error) {
@@ -160,9 +169,9 @@ export const run = async (onCase = () => {}, only = sizes) => {
         if (name === "fast-multisort" && status !== "") {
           throw new Error(`fast-multisort${status} on ${size} rows, ${c.name}`);
         }
-        return {name: `${name}${status}`, fn};
+        return {name: `${name}${status}`, fn, first};
       });
-      const ms = measure(checked.map((t) => t.fn));
+      const ms = measure(checked);
       const timed = checked.map((t, i) => ({name: t.name, ms: ms[i]}));
       timed.sort((a, b) => a.ms - b.ms);
       const ours = timed.find((t) => t.name === "fast-multisort").ms;
