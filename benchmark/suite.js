@@ -53,7 +53,7 @@ export const cases = [
   },
 ];
 
-export const sizes = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000];
+export const sizes = [1, 10, 100, 1_000, 10_000, 100_000];
 
 const compareNullsLast = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a < b ? -1 : 1);
 const nativeDecorated = (items, props, orders) =>

@@ -11,17 +11,16 @@ execFileSync("node_modules/.bin/esbuild", ["benchmark/browser-entry.js", "--bund
 const bundle = path.resolve("benchmark/.browser-bundle.js");
 const page = path.resolve("benchmark/.browser-page.html");
 fs.writeFileSync(page, `<!doctype html><meta charset="utf-8"><script src="${pathToFileURL(bundle).href}"></script>`);
-const pageUrl = (only = process.env.SIZES?.split(",").map(Number) ?? sizes) => `${pathToFileURL(page).href}?sizes=${only.join(",")}`;
-const firefoxSizes = sizes.filter((size) => size < 1_000_000);
+const pageUrl = () => `${pathToFileURL(page).href}?sizes=${process.env.SIZES ?? sizes.join(",")}`;
 
 const progress = (label) => (text) => console.error(`${new Date().toISOString().slice(11, 19)} ${label}: ${text}`);
 
-const viaPlaywright = (engine, label, args = [], url = pageUrl()) => async () => {
-  const browser = await engine.launch({timeout: 60_000, args});
+const viaPlaywright = (engine, label) => async () => {
+  const browser = await engine.launch({timeout: 60_000});
   try {
     const tab = await browser.newPage();
     tab.on("console", (message) => progress(label)(message.text()));
-    await tab.goto(url, {timeout: 120_000});
+    await tab.goto(pageUrl(), {timeout: 120_000});
     return {version: browser.version(), markdown: await tab.evaluate(() => globalThis.__results)};
   } finally {
     await browser.close();
@@ -30,13 +29,13 @@ const viaPlaywright = (engine, label, args = [], url = pageUrl()) => async () =>
 
 const viaStockFirefox = async () => ({
   version: firefoxVersion(),
-  markdown: await evaluateInFirefox(pageUrl(firefoxSizes), "globalThis.__results", progress("Firefox")),
+  markdown: await evaluateInFirefox(pageUrl(), "globalThis.__results", progress("Firefox")),
 });
 
 const engines = [
-  ["Chromium", viaPlaywright(chromium, "Chromium", ["--js-flags=--max-old-space-size=16384"])],
+  ["Chromium", viaPlaywright(chromium, "Chromium")],
   ["WebKit", viaPlaywright(webkit, "WebKit")],
-  ["Firefox", () => (firefoxVersion() === null ? viaPlaywright(firefox, "Firefox", [], pageUrl(firefoxSizes))() : viaStockFirefox())],
+  ["Firefox", () => (firefoxVersion() === null ? viaPlaywright(firefox, "Firefox")() : viaStockFirefox())],
 ];
 
 const only = process.env.ENGINES?.split(",");

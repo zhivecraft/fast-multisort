@@ -22,12 +22,12 @@ if (libName !== undefined) {
   const leaked = process.memoryUsage().heapUsed - before - retained;
   console.log(JSON.stringify({grown, retained, leaked, length: kept.length}));
 } else {
-  const n = Number(caseName ?? 1_000_000);
+  const n = Number(caseName ?? 100_000);
   const rows = [];
   for (const c of cases.filter((x) => x.props.length > 1 || ["name", "moved"].includes(x.props[0]))) {
     console.log(`\n${n.toLocaleString("en-US")} rows, ${c.name}: heap growth during one sort / retained by the result / left after 20 more sorts`);
     for (const name of Object.keys(libraries(makeRows(10), c))) {
-      const out = execFileSync(process.execPath, ["--expose-gc", "--max-old-space-size=32768", "benchmark/memory.js", c.name, name, String(n)], {encoding: "utf8"});
+      const out = execFileSync(process.execPath, ["--expose-gc", "benchmark/memory.js", c.name, name, String(n)], {encoding: "utf8"});
       const {grown, retained, leaked} = JSON.parse(out.trim().split("\n").at(-1));
       const mb = (x) => (x / 2 ** 20).toFixed(1).padStart(7);
       console.log(`${name.padEnd(42)} ${mb(grown)} MB ${mb(retained)} MB ${mb(leaked)} MB`);
