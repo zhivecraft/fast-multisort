@@ -1,6 +1,5 @@
 import {execFileSync} from "node:child_process";
 import fs from "node:fs";
-import v8 from "node:v8";
 
 import {cases, libraries, makeRows} from "./suite.js";
 
@@ -8,24 +7,27 @@ const [, , caseName, libName, size] = process.argv;
 if (libName !== undefined) {
   const rows = makeRows(Number(size));
   const fn = libraries(rows, cases.find((x) => x.name === caseName))[libName];
+  const usage = () => {
+    const {heapTotal, heapUsed, arrayBuffers} = process.memoryUsage();
+    return {reserved: heapTotal + arrayBuffers, used: heapUsed + arrayBuffers};
+  };
   global.gc();
-  const before = process.memoryUsage().heapUsed;
-  const reserved = v8.getHeapStatistics().total_heap_size;
+  const before = usage();
   let kept = fn();
-  const grown = v8.getHeapStatistics().total_heap_size - reserved;
+  const grown = usage().reserved - before.reserved;
   global.gc();
-  const retained = process.memoryUsage().heapUsed - before;
+  const retained = usage().used - before.used;
   for (let i = 0; i < 20; i++) {
     kept = fn();
   }
   global.gc();
-  const leaked = process.memoryUsage().heapUsed - before - retained;
+  const leaked = usage().used - before.used - retained;
   console.log(JSON.stringify({grown, retained, leaked, length: kept.length}));
 } else {
   const n = Number(caseName ?? 100_000);
   const rows = [];
   for (const c of cases.filter((x) => x.props.length > 1 || ["name", "moved"].includes(x.props[0]))) {
-    console.log(`\n${n.toLocaleString("en-US")} rows, ${c.name}: heap growth during one sort / retained by the result / left after 20 more sorts`);
+    console.log(`\n${n.toLocaleString("en-US")} rows, ${c.name}: heap and ArrayBuffer growth during one sort / held after it / left after 20 more sorts`);
     for (const name of Object.keys(libraries(makeRows(10), c))) {
       const out = execFileSync(process.execPath, ["--expose-gc", "benchmark/memory.js", c.name, name, String(n)], {encoding: "utf8"});
       const {grown, retained, leaked} = JSON.parse(out.trim().split("\n").at(-1));

@@ -3,32 +3,32 @@
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "fast-multisort",
-  "grown": 2408448,
-  "retained": 1450608,
-  "leaked": 73464
+  "grown": 3608448,
+  "retained": 2245608,
+  "leaked": 84176
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "inline comparator chain, slice().sort()",
-  "grown": 2162688,
-  "retained": 1397528,
-  "leaked": -520
+  "grown": 2949120,
+  "retained": 1396368,
+  "leaked": -472
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "inline comparator chain, toSorted()",
   "grown": 2686976,
-  "retained": 1397488,
-  "leaked": -584
+  "retained": 1396360,
+  "leaked": -536
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "lodash.orderBy",
-  "grown": 2162688,
-  "retained": 1425472,
+  "grown": 2424832,
+  "retained": 1423712,
   "leaked": 2344
  },
  {
@@ -36,79 +36,79 @@
   "name": "string key, 10 distinct values",
   "library": "es-toolkit.orderBy",
   "grown": 2162688,
-  "retained": 1402616,
-  "leaked": 2376
+  "retained": 1401464,
+  "leaked": 2536
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "remeda.sortBy",
-  "grown": 4587520,
-  "retained": 1402968,
-  "leaked": 10808
+  "grown": 4849664,
+  "retained": 1401808,
+  "leaked": 10760
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "ramda.sortWith",
-  "grown": 2424832,
-  "retained": 1404232,
-  "leaked": -48
+  "grown": 2949120,
+  "retained": 1403040,
+  "leaked": -16
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "fast-sort",
   "grown": 2424832,
-  "retained": 1403792,
-  "leaked": 6648
+  "retained": 1402648,
+  "leaked": 6632
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "sort-array",
   "grown": 2162688,
-  "retained": 1409472,
-  "leaked": 1160
+  "retained": 1408224,
+  "leaked": 1120
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "thenby",
-  "grown": 2686976,
-  "retained": 1398648,
+  "grown": 2162688,
+  "retained": 1397392,
   "leaked": 5840
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "sort-on",
-  "grown": 3473408,
-  "retained": 1443344,
-  "leaked": -3416
+  "grown": 2949120,
+  "retained": 1442752,
+  "leaked": -3384
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "sort-by",
   "grown": 4784128,
-  "retained": 1457248,
-  "leaked": -28080
+  "retained": 1455448,
+  "leaked": -28048
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "natural-orderby",
-  "grown": 26296320,
-  "retained": 1498448,
-  "leaked": -33304
+  "grown": 26558464,
+  "retained": 1497256,
+  "leaked": -33352
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "Array.prototype.sort, decorated",
   "grown": 2965504,
-  "retained": 1398448,
+  "retained": 1397176,
   "leaked": 1968
  },
  {
@@ -116,55 +116,55 @@
   "name": "string key, 10 distinct values",
   "library": "underscore.sortBy",
   "grown": 2965504,
-  "retained": 1405328,
-  "leaked": 6664
+  "retained": 1403624,
+  "leaked": 6376
  },
  {
   "size": 100000,
   "name": "string key, 10 distinct values",
   "library": "just-sort-by",
   "grown": 2424832,
-  "retained": 1396792,
-  "leaked": -40
+  "retained": 1395632,
+  "leaked": -88
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "fast-multisort",
-  "grown": 2670592,
-  "retained": 1418224,
-  "leaked": 60376
+  "grown": 3732736,
+  "retained": 1421096,
+  "leaked": 52768
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "inline comparator chain, slice().sort()",
   "grown": 1605632,
-  "retained": 1395720,
-  "leaked": -472
+  "retained": 1395808,
+  "leaked": -1784
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "inline comparator chain, toSorted()",
   "grown": 1605632,
-  "retained": 1396960,
-  "leaked": -1848
+  "retained": 1394232,
+  "leaked": -248
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "lodash.orderBy",
-  "grown": 2129920,
-  "retained": 1420968,
-  "leaked": 3768
+  "grown": 1867776,
+  "retained": 1422080,
+  "leaked": 2184
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "es-toolkit.orderBy",
-  "grown": 2129920,
-  "retained": 1401240,
+  "grown": 1605632,
+  "retained": 1400112,
   "leaked": 3592
  },
  {
@@ -172,47 +172,47 @@
   "name": "ordered list, one row moved",
   "library": "remeda.sortBy",
   "grown": 4292608,
-  "retained": 1406312,
+  "retained": 1405152,
   "leaked": 7432
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "ramda.sortWith",
-  "grown": 2392064,
-  "retained": 1403896,
-  "leaked": 240
+  "grown": 2654208,
+  "retained": 1402656,
+  "leaked": 320
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "fast-sort",
-  "grown": 1605632,
-  "retained": 1402520,
-  "leaked": 7920
+  "grown": 1867776,
+  "retained": 1401376,
+  "leaked": 7904
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "sort-array",
   "grown": 1605632,
-  "retained": 1422040,
-  "leaked": -6704
+  "retained": 1420800,
+  "leaked": -6656
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "thenby",
-  "grown": 2129920,
-  "retained": 1397656,
+  "grown": 1605632,
+  "retained": 1396400,
   "leaked": 6800
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "sort-on",
-  "grown": 2654208,
-  "retained": 1444832,
+  "grown": 2129920,
+  "retained": 1443736,
   "leaked": -3440
  },
  {
@@ -220,23 +220,23 @@
   "name": "ordered list, one row moved",
   "library": "sort-by",
   "grown": 2129920,
-  "retained": 1429720,
-  "leaked": 2904
+  "retained": 1429744,
+  "leaked": 3104
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "natural-orderby",
   "grown": 94420992,
-  "retained": 1486032,
-  "leaked": -32160
+  "retained": 1484728,
+  "leaked": -32128
  },
  {
   "size": 100000,
   "name": "ordered list, one row moved",
   "library": "Array.prototype.sort, decorated",
-  "grown": 2408448,
-  "retained": 1401488,
+  "grown": 2670592,
+  "retained": 1400216,
   "leaked": -328
  },
  {
@@ -244,7 +244,7 @@
   "name": "ordered list, one row moved",
   "library": "underscore.sortBy",
   "grown": 2932736,
-  "retained": 1405376,
+  "retained": 1404232,
   "leaked": 6496
  },
  {
@@ -252,47 +252,47 @@
   "name": "ordered list, one row moved",
   "library": "just-sort-by",
   "grown": 1605632,
-  "retained": 1395672,
+  "retained": 1394544,
   "leaked": 936
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "fast-multisort",
-  "grown": 4276224,
-  "retained": 1623696,
-  "leaked": 28048
+  "grown": 6492816,
+  "retained": 2898344,
+  "leaked": 28768
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "inline comparator chain, slice().sort()",
-  "grown": 2228224,
-  "retained": 1399528,
-  "leaked": -472
+  "grown": 2490368,
+  "retained": 1398368,
+  "leaked": -520
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "inline comparator chain, toSorted()",
   "grown": 2490368,
-  "retained": 1399576,
-  "leaked": -624
+  "retained": 1398344,
+  "leaked": -584
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "lodash.orderBy",
-  "grown": 2752512,
-  "retained": 1430480,
-  "leaked": 1736
+  "grown": 2490368,
+  "retained": 1429336,
+  "leaked": 1784
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "es-toolkit.orderBy",
-  "grown": 2752512,
-  "retained": 1403824,
+  "grown": 2228224,
+  "retained": 1402696,
   "leaked": 4400
  },
  {
@@ -300,71 +300,71 @@
   "name": "three keys, mixed directions",
   "library": "remeda.sortBy",
   "grown": 4653056,
-  "retained": 1408184,
+  "retained": 1407024,
   "leaked": 11680
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "ramda.sortWith",
-  "grown": 4325376,
-  "retained": 1408696,
-  "leaked": 8552
+  "grown": 4587520,
+  "retained": 1407504,
+  "leaked": 8536
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "fast-sort",
-  "grown": 2490368,
-  "retained": 1419952,
-  "leaked": 1816
+  "grown": 2228224,
+  "retained": 1418864,
+  "leaked": 1616
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "sort-array",
   "grown": 2228224,
-  "retained": 824944,
-  "leaked": 25512
+  "retained": 825320,
+  "leaked": 26032
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "thenby",
   "grown": 2228224,
-  "retained": 1401952,
-  "leaked": 6136
+  "retained": 1400712,
+  "leaked": 6024
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "sort-on",
   "grown": 2490368,
-  "retained": 853448,
-  "leaked": -35296
+  "retained": 852368,
+  "leaked": -35344
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "sort-by",
-  "grown": 6422528,
-  "retained": 1485544,
-  "leaked": -32384
+  "grown": 6684672,
+  "retained": 1482192,
+  "leaked": -32352
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "natural-orderby",
-  "grown": 134365184,
-  "retained": 1555568,
-  "leaked": -29832
+  "grown": 134627328,
+  "retained": 1551272,
+  "leaked": -1030496
  },
  {
   "size": 100000,
   "name": "three keys, mixed directions",
   "library": "Array.prototype.sort, decorated",
   "grown": 3293184,
-  "retained": 811992,
-  "leaked": 26296
+  "retained": 810528,
+  "leaked": 27560
  }
 ]
