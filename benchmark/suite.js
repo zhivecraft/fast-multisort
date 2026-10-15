@@ -126,7 +126,7 @@ const calibrated = ({fn, first}) => {
   }
 };
 
-const measure = (entries) => {
+export const measure = (entries) => {
   const tasks = entries.map(calibrated);
   const deadline = performance.now() + 500 * tasks.length;
   for (;;) {
