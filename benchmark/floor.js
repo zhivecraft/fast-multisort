@@ -28,9 +28,14 @@ console.log("| rows | case | fast-multisort µs | getters + copy µs | inline to
 console.log("|---:|---|---:|---:|---:|---:|");
 for (const size of [10, 100, 10_000, 100_000]) {
   const items = makeRows(size);
+  const fnsOf = (c) => [() => orderBy(items, c.getters, c.orders), () => contract(items, c.getters), () => items.toSorted(c.inline)];
   for (const c of cases) {
-    const fns = [() => orderBy(items, c.getters, c.orders), () => contract(items, c.getters), () => items.toSorted(c.inline)];
-    const [ours, floor, inline] = measure(fns.map((fn) => ({fn, first: 0})));
+    for (const fn of fnsOf(c)) {
+      fn();
+    }
+  }
+  for (const c of cases) {
+    const [ours, floor, inline] = measure(fnsOf(c).map((fn) => ({fn, first: 0})));
     console.log(`| ${size.toLocaleString("en-US")} | ${c.name} | ${us(ours)} | ${us(floor)} | ${us(inline)} | ${(floor / inline).toFixed(2)}× |`);
   }
 }
