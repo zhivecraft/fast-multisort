@@ -6,6 +6,7 @@ import {cases, libraries, makeRows} from "./suite.js";
 const [, , caseName, libName, size] = process.argv;
 if (libName !== undefined) {
   const rows = makeRows(Number(size));
+  JSON.stringify(rows);
   const fn = libraries(rows, cases.find((x) => x.name === caseName))[libName];
   const usage = () => {
     const {heapTotal, heapUsed, arrayBuffers} = process.memoryUsage();
@@ -26,7 +27,7 @@ if (libName !== undefined) {
 } else {
   const n = Number(caseName ?? 100_000);
   const rows = [];
-  for (const c of cases.filter((x) => x.props.length > 1 || ["name", "moved"].includes(x.props[0]))) {
+  for (const c of cases.filter((x) => x.props.length > 1 || ["name", "unique", "moved"].includes(x.props[0]))) {
     console.log(`\n${n.toLocaleString("en-US")} rows, ${c.name}: heap and ArrayBuffer growth during one sort / held after it / left after 20 more sorts`);
     for (const name of Object.keys(libraries(makeRows(10), c))) {
       const out = execFileSync(process.execPath, ["--expose-gc", "benchmark/memory.js", c.name, name, String(n)], {encoding: "utf8"});
