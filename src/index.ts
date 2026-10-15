@@ -1382,6 +1382,58 @@ const consistent = (keys: unknown[]) => {
   return true;
 };
 
+const sortFew = <T>(items: readonly T[], keys: unknown[], desc: boolean, nullsFirst: boolean | null): T[] | null => {
+  const n = items.length;
+  let kind = "";
+  for (let i = 0; i < n; i++) {
+    const key = keys[i];
+    if (key !== null && key !== undefined) {
+      const type = typeof key;
+      if ((type !== "number" && type !== "string") || Number.isNaN(key) || (kind !== "" && type !== kind)) {
+        return null;
+      }
+      kind = type;
+    }
+  }
+  const numeric = kind === "number";
+  const undefinedClass = nullsFirst === null ? 2 : 1;
+  const out = new Array<T>(n);
+  const sorted = new Array<unknown>(n);
+  for (let i = 0; i < n; i++) {
+    const key = keys[i];
+    const keyClass = key === null ? 1 : key === undefined ? undefinedClass : 0;
+    let lo = 0;
+    let hi = i;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      const placed = sorted[mid];
+      const placedClass = placed === null ? 1 : placed === undefined ? undefinedClass : 0;
+      let after = false;
+      if (placedClass !== keyClass) {
+        after = nullsFirst === null ? placedClass > keyClass !== desc : placedClass > keyClass !== nullsFirst;
+      } else if (keyClass === 0) {
+        if (numeric) {
+          after = desc ? (placed as number) < (key as number) : (placed as number) > (key as number);
+        } else {
+          after = desc ? (placed as string) < (key as string) : (placed as string) > (key as string);
+        }
+      }
+      if (after) {
+        hi = mid;
+      } else {
+        lo = mid + 1;
+      }
+    }
+    for (let j = i; j > lo; j--) {
+      sorted[j] = sorted[j - 1];
+      out[j] = out[j - 1];
+    }
+    sorted[lo] = key;
+    out[lo] = items[i];
+  }
+  return out;
+};
+
 const sortByKeys = <T>(items: readonly T[], keys: unknown[][], compare: Compare) => {
   const indices = new Array<number>(items.length);
   for (let i = 0; i < items.length; i++) {
@@ -1409,7 +1461,7 @@ export const orderBy = <T>(
     if (ordered !== null) {
       return ordered;
     }
-    return items.length > DIRECT ? orderByColumns(items, [column]) : sortByKeys(items, [column.keys], lodashChain([column.keys], [desc]));
+    return items.length > DIRECT ? orderByColumns(items, [column]) : (sortFew(items, column.keys, desc, null) ?? sortByKeys(items, [column.keys], lodashChain([column.keys], [desc])));
   }
   const getters = iteratees.length === 0 ? [(item: T) => item] : iteratees.map(toGetter);
   if (items.length <= DIRECT) {
@@ -1467,6 +1519,10 @@ export const multisort = <T>(items: readonly T[], rules: readonly SortRule<T>[])
   }
   if (items.length > DIRECT) {
     return orderByColumns(items, columns);
+  }
+  const few = columns.length === 1 ? sortFew(items, columns[0].keys, columns[0].desc, columns[0].specialsFirst) : null;
+  if (few !== null) {
+    return few;
   }
   const keys = columns.map((column) => column.keys);
   return sortByKeys(
