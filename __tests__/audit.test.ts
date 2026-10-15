@@ -1,5 +1,7 @@
 import fc from "fast-check";
 import lodashOrderBy from "lodash/orderBy";
+import {setFlagsFromString} from "node:v8";
+import {runInNewContext} from "node:vm";
 import {describe, expect, it} from "vitest";
 
 import {multisort, orderBy, orderByColumns, type SortColumn} from "../src/index.ts";
@@ -257,6 +259,19 @@ describe("scratch memory", () => {
       globalThis.Float64Array = Original;
     }
     expect(allocated).toBeLessThan(4 * n);
+  });
+
+  it("keeps no unique-string scratch past the retained pool size", () => {
+    setFlagsFromString("--expose-gc");
+    const gc: () => void = runInNewContext("gc");
+    const n = (1 << 17) + 1;
+    const rows = Array.from({length: n}, (_, id) => ({name: ((id * 2654435761) >>> 0).toString(36)}));
+    gc();
+    const before = process.memoryUsage().arrayBuffers;
+    const out = orderBy(rows, ["name"]);
+    gc();
+    expect(distinct(out)).toBe(n);
+    expect(process.memoryUsage().arrayBuffers - before).toBeLessThan(n);
   });
 });
 
