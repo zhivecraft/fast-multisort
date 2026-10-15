@@ -95,13 +95,15 @@ type Pool = {
 
 type Chain = {next: Int32Array; tail: Int32Array};
 
-type Frame = {pools: Pool[]; chains: Chain[]; largest: number};
+type StringPool = {hi: Uint32Array; lo: Uint32Array; order: Uint32Array; tmp: Uint32Array};
+
+type Frame = {pools: Pool[]; chains: Chain[]; strings: StringPool[]; largest: number};
 
 type Sink = {out: Uint32Array; pos: number; frame: Frame};
 
 const idleFrames: Frame[] = [];
 
-const acquireFrame = (): Frame => idleFrames.pop() ?? {pools: [], chains: [], largest: 0};
+const acquireFrame = (): Frame => idleFrames.pop() ?? {pools: [], chains: [], strings: [], largest: 0};
 
 const releaseFrame = (frame: Frame) => {
   if (frame.largest <= RETAIN_MAX && idleFrames.length < IDLE_FRAMES_MAX) {
@@ -210,16 +212,12 @@ const WINDOW = 8;
 const WINDOW_SMALL = 64;
 const WINDOW_SCAN = 64;
 
-type StringPool = {hi: Uint32Array; lo: Uint32Array; order: Uint32Array; tmp: Uint32Array};
-
-const stringPools: StringPool[] = [];
-
-const stringPoolAt = (depth: number, n: number): StringPool => {
-  let pool = stringPools[depth];
+const stringPoolAt = (frame: Frame, depth: number, n: number): StringPool => {
+  let pool = frame.strings[depth];
   if (pool === undefined || pool.hi.length < n) {
-    const size = Math.max(n, 1024, pool === undefined ? 0 : pool.hi.length * 2);
+    const size = grown(frame, pool === undefined ? 0 : pool.hi.length, n);
     pool = {hi: new Uint32Array(size), lo: new Uint32Array(size), order: new Uint32Array(size), tmp: new Uint32Array(size)};
-    stringPools[depth] = pool;
+    frame.strings[depth] = pool;
   }
   return pool;
 };
@@ -291,7 +289,7 @@ const windowSort = (strings: string[], idx: Uint32Array, n: number, offset: numb
     positions[q] = -1;
   }
   const next = positions[found - 1] + 1;
-  const pool = stringPoolAt(depth, n);
+  const pool = stringPoolAt(sink.frame, depth, n);
   const {hi, lo} = pool;
   for (let i = 0; i < n; i++) {
     const s = strings[idx[i]];
